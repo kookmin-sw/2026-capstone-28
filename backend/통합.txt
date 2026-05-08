@@ -1,0 +1,19 @@
+backend/
+├── api/
+│   ├── router.py           ← 기존 (분석)
+│   └── video_upload.py     ← 신규 이동 (업로드)
+│
+├── utils/                  ← 신규 폴더 생성
+│   ├── supabase_client.py  ← 신규 이동
+│   ├── validation.py       ← 신규 이동
+│   └── ffmpeg_utils.py     ← 신규 이동
+│
+├── schemas/
+│   ├── (기존 schemas)
+│   └── video.py            ← schemas_video.py 이름 변경 후 이동
+│
+├── core/
+├── model_pipeline/
+├── models/
+├── repository/
+└── main.py                 ← 기존 + 신규 라우터 병합

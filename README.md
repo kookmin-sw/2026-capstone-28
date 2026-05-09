@@ -347,51 +347,7 @@ uvicorn main:app --reload
 # Swagger UI: http://localhost:8000/docs
 ```
 
-### 3. 프론트엔드 설정
-
-```bash
-cd ../kpop-studio
-
-# 의존성 설치
-npm install
-```
-
-**환경변수 설정** — `kpop-studio/.env` 파일 생성:
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-> ⚠️ 프론트엔드에는 반드시 `anon` key만 사용하세요. `service_role` key는 백엔드 전용입니다.
-
-**PDF 한글 폰트 설치:**
-
-[Google Fonts - Noto Sans KR](https://fonts.google.com/noto/specimen/Noto+Sans+KR) 에서 다운로드 후:
-
-```bash
-mkdir public/fonts
-# NotoSansKR-Regular.ttf, NotoSansKR-Bold.ttf → public/fonts/
-```
-
-**개발 서버 실행:**
-
-```bash
-npm run dev
-# http://localhost:5173
-```
-
-### 4. 동시 실행
-
-터미널 2개를 열어서 백엔드와 프론트엔드를 각각 실행합니다.
-
-```
-터미널 1 (백엔드):    uvicorn main:app --reload        → :8000
-터미널 2 (프론트엔드): npm run dev                      → :5173
-```
-
-브라우저에서 `http://localhost:5173` 접속 → 로그인 → 영상 업로드 → 분석 시작
-
+*수정 중
 ---
 
 ## 📚 사용 라이브러리

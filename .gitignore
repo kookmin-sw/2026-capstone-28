@@ -14,7 +14,10 @@ backend/test_data/
 *.pth
 *.pt
 *.ckpt
-backend/models/
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

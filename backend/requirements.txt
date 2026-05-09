@@ -1,0 +1,34 @@
+# ===== Web framework =====
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+ 
+# ===== ML / CV =====
+# PyTorch (CPU 전용 — GPU 없는 환경)
+# 설치 시: pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch
+numpy==1.26.4
+opencv-python==4.10.0.84
+ultralytics==8.4.0
+mediapipe==0.10.14
+einops==0.8.0
+ 
+# ===== LLM (report.py) =====
+langchain-openai==0.2.14
+langchain-core==0.3.28
+openai==1.58.1
+ 
+# ===== Supabase / DB =====
+supabase==2.7.4
+python-dotenv==1.0.1
+requests==2.32.3
+ 
+# ===== Util =====
+pydantic==2.9.2
+pydantic-settings==2.5.2
+ 
+# ===== 시스템 설치 필요 (pip 아님) =====
+# ffmpeg — 아래 방법으로 별도 설치
+# Windows : https://ffmpeg.org/download.html → PATH 등록
+# Mac     : brew install ffmpeg
+# Ubuntu  : sudo apt install ffmpeg

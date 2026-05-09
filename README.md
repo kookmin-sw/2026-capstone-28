@@ -13,7 +13,7 @@
 
 <br/>
 
-<img src="docs/images/system_overview.png" alt="Tenein System Overview" width="720"/>
+
 
 <br/>
 

@@ -34,6 +34,13 @@ export default function ProfilePage({ onNavigate }) {
     joinDate: "",
     totalAnalyses: 0,
   });
+  const [editModalType, setEditModalType] = useState(null); // "profile" | "password" | null
+  const [modalLoading, setModalLoading] = useState(false);
+
+  const closeEditModal = () => {
+    if (modalLoading) return;
+    setEditModalType(null);
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -155,6 +162,95 @@ export default function ProfilePage({ onNavigate }) {
     }
   };
 
+  const verifyCurrentPassword = async (currentPassword) => {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authData?.user?.email) {
+      throw new Error("로그인이 필요합니다.");
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authData.user.email,
+      password: currentPassword,
+    });
+
+    if (error) {
+      throw new Error("현재 비밀번호가 올바르지 않습니다.");
+    }
+
+    return authData.user;
+  };
+
+  const handleUpdateProfile = async ({ currentPassword, username }) => {
+    const trimmedUsername = username.trim();
+
+    if (!trimmedUsername) {
+      alert("변경할 이름을 입력해주세요.");
+      return;
+    }
+
+    setModalLoading(true);
+    try {
+      const authUser = await verifyCurrentPassword(currentPassword);
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ user_name: trimmedUsername })
+        .eq("id", authUser.id);
+
+      if (error) {
+        console.error("회원정보 수정 실패:", error);
+        alert("회원정보 수정에 실패했습니다.");
+        return;
+      }
+
+      setUserProfile((prev) => ({
+        ...prev,
+        username: trimmedUsername,
+      }));
+      alert("회원정보가 수정되었습니다.");
+      setEditModalType(null);
+    } catch (err) {
+      alert(err.message || "회원정보 수정 중 오류가 발생했습니다.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async ({ currentPassword, newPassword, newPasswordConfirm }) => {
+    if (newPassword.length < 6) {
+      alert("새 비밀번호는 6자 이상으로 입력해주세요.");
+      return;
+    }
+
+    if (newPassword !== newPasswordConfirm) {
+      alert("새 비밀번호가 서로 일치하지 않습니다.");
+      return;
+    }
+
+    setModalLoading(true);
+    try {
+      await verifyCurrentPassword(currentPassword);
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        console.error("비밀번호 변경 실패:", error);
+        alert("비밀번호 변경에 실패했습니다.");
+        return;
+      }
+
+      alert("비밀번호가 변경되었습니다.");
+      setEditModalType(null);
+    } catch (err) {
+      alert(err.message || "비밀번호 변경 중 오류가 발생했습니다.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   return (
     <div style={styles.root}>
       <link
@@ -228,8 +324,18 @@ export default function ProfilePage({ onNavigate }) {
             <div style={styles.divider} />
 
             <div style={styles.actionRow}>
-              <button style={styles.actionBtn}>정보 수정</button>
-              <button style={styles.actionBtn}>비밀번호 변경</button>
+              <button
+                style={styles.actionBtn}
+                onClick={() => setEditModalType("profile")}
+              >
+                정보 수정
+              </button>
+              <button
+                style={styles.actionBtn}
+                onClick={() => setEditModalType("password")}
+              >
+                비밀번호 변경
+              </button>
             </div>
           </div>
         </aside>
@@ -268,6 +374,18 @@ export default function ProfilePage({ onNavigate }) {
           </div>
         </section>
       </main>
+
+      {/* ===== Profile Edit / Password Change Modal ===== */}
+      {editModalType && (
+        <AccountEditModal
+          type={editModalType}
+          userProfile={userProfile}
+          loading={modalLoading}
+          onClose={closeEditModal}
+          onSubmit={editModalType === "profile" ? handleUpdateProfile : handleUpdatePassword}
+        />
+      )}
+
 
       {/* ===== Detail Modal ===== */}
       {selectedHistory && (
@@ -387,6 +505,119 @@ const ThumbBox = ({ label, src }) => {
         }}>▶</div>
       )}
       <div style={styles.thumbLabel}>{label}</div>
+    </div>
+  );
+};
+
+/* ---------- Account Edit Modal ---------- */
+const AccountEditModal = ({ type, userProfile, loading, onClose, onSubmit }) => {
+  const isProfileEdit = type === "profile";
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [username, setUsername] = useState(userProfile.username || "");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!currentPassword) {
+      alert("현재 비밀번호를 입력해주세요.");
+      return;
+    }
+
+    onSubmit({
+      currentPassword,
+      username,
+      newPassword,
+      newPasswordConfirm,
+    });
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <form style={styles.accountModalCard} onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.cardSheen} />
+        <button type="button" onClick={onClose} style={styles.modalClose} disabled={loading}>✕</button>
+
+        <div style={styles.modalBadge}>
+          <span style={styles.modalBadgeDot} />
+          {isProfileEdit ? "회원정보 수정" : "비밀번호 변경"}
+        </div>
+
+        <h2 style={styles.accountModalTitle}>
+          {isProfileEdit ? "회원정보 수정" : "비밀번호 변경"}
+        </h2>
+        <p style={styles.accountModalDesc}>
+          보안을 위해 현재 로그인된 계정의 비밀번호를 먼저 확인합니다.
+        </p>
+
+        <div style={styles.formGroup}>
+          <label style={styles.formLabel}>이메일</label>
+          <input
+            value={userProfile.email || ""}
+            disabled
+            style={{ ...styles.formInput, ...styles.formInputDisabled }}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.formLabel}>현재 비밀번호</label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="현재 비밀번호를 입력하세요"
+            style={styles.formInput}
+            autoComplete="current-password"
+          />
+        </div>
+
+        {isProfileEdit ? (
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>이름</label>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="변경할 이름을 입력하세요"
+              style={styles.formInput}
+            />
+          </div>
+        ) : (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>새 비밀번호</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="새 비밀번호를 입력하세요"
+                style={styles.formInput}
+                autoComplete="new-password"
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>새 비밀번호 확인</label>
+              <input
+                type="password"
+                value={newPasswordConfirm}
+                onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                placeholder="새 비밀번호를 한 번 더 입력하세요"
+                style={styles.formInput}
+                autoComplete="new-password"
+              />
+            </div>
+          </>
+        )}
+
+        <div style={styles.modalFooter}>
+          <button type="button" onClick={onClose} style={styles.accountCancelBtn} disabled={loading}>
+            취소
+          </button>
+          <button type="submit" style={styles.modalCloseBtn} disabled={loading}>
+            {loading ? "처리 중..." : isProfileEdit ? "수정하기" : "변경하기"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
@@ -917,6 +1148,82 @@ const styles = {
     fontWeight: 700,
     cursor: "pointer",
     boxShadow: "0 4px 12px rgba(11,59,46,0.06), inset 0 1px 0 rgba(255,255,255,0.9)",
+  },
+
+  accountModalCard: {
+    position: "relative",
+    width: "100%",
+    maxWidth: 480,
+    padding: "40px 44px 32px",
+    borderRadius: 32,
+    background:
+      "linear-gradient(155deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.6) 50%, rgba(200,242,220,0.4) 100%)",
+    backdropFilter: "blur(40px) saturate(200%)",
+    WebkitBackdropFilter: "blur(40px) saturate(200%)",
+    border: "1px solid rgba(255,255,255,0.85)",
+    boxShadow: [
+      "0 40px 100px rgba(11,59,46,0.3)",
+      "0 12px 32px rgba(11,59,46,0.12)",
+      "inset 0 1px 0 rgba(255,255,255,0.95)",
+      "inset 0 -1px 0 rgba(46,139,87,0.15)",
+    ].join(", "),
+    animation: "modalSlideUp 0.35s ease-out",
+  },
+  accountModalTitle: {
+    fontFamily: "'Chakra Petch',sans-serif",
+    fontSize: 24,
+    fontWeight: 700,
+    color: C.deep,
+    margin: "0 0 8px",
+  },
+  accountModalDesc: {
+    fontSize: 13,
+    color: C.textSoft,
+    lineHeight: 1.6,
+    margin: "0 0 24px",
+  },
+  formGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: C.forest,
+    letterSpacing: 0.4,
+  },
+  formInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "13px 15px",
+    borderRadius: 12,
+    border: "1px solid rgba(46,139,87,0.22)",
+    outline: "none",
+    background: "rgba(255,255,255,0.68)",
+    color: C.deep,
+    fontFamily: "'Rajdhani',sans-serif",
+    fontSize: 14,
+    fontWeight: 700,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9)",
+  },
+  formInputDisabled: {
+    opacity: 0.75,
+    cursor: "not-allowed",
+    background: "rgba(200,242,220,0.35)",
+  },
+  accountCancelBtn: {
+    padding: "14px 36px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.8)",
+    background: "linear-gradient(135deg, rgba(255,255,255,0.7), rgba(200,242,220,0.5))",
+    color: C.forest,
+    fontFamily: "'Rajdhani',sans-serif",
+    fontSize: 15,
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 4px 16px rgba(46,139,87,0.15), inset 0 1px 0 rgba(255,255,255,0.9)",
   },
 
   /* ===== Detail Modal ===== */

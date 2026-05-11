@@ -25,12 +25,14 @@ export default function HomePage({ onNavigate, onAnalyze }) {
   const [activeNav, setActiveNav] = useState("analyse");
   const [videoA, setVideoA] = useState(null);
   const [videoB, setVideoB] = useState(null);
+  const [videoAUrl, setVideoAUrl] = useState("");
+  const [videoBUrl, setVideoBUrl] = useState("");
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAnalyze = async () => {
-    if (!videoA || !videoB) {
-      alert("두 영상을 모두 업로드해주세요.");
+    if ((!videoA && !videoAUrl) || (!videoB && !videoBUrl)) {
+      alert("원본 영상과 비교 영상을 모두 업로드하거나 URL로 입력해주세요.");
       return;
     }
 
@@ -50,8 +52,12 @@ export default function HomePage({ onNavigate, onAnalyze }) {
       //const session = { access_token: "test-token" };
 
       const form = new FormData();
-      form.append("video_a", videoA);
-      form.append("video_b", videoB);
+      if (videoA) form.append("video_a", videoA);
+      if (videoB) form.append("video_b", videoB);
+
+
+      if (videoAUrl) form.append("video_a_url", videoAUrl);
+      if (videoBUrl) form.append("video_b_url", videoBUrl);
 
       const res = await fetch("http://localhost:8000/api/videos/upload", {
         method: "POST",
@@ -130,8 +136,32 @@ export default function HomePage({ onNavigate, onAnalyze }) {
 
           {/* Upload zones */}
           <div style={styles.uploadGrid}>
-            <UploadZone label="원본 영상" file={videoA} onFile={setVideoA} />
-            <UploadZone label="비교 영상" file={videoB} onFile={setVideoB} />
+            <UploadZone
+              label="원본 영상"
+              file={videoA}
+              url={videoAUrl}
+              onFile={(file) => {
+                setVideoA(file);
+                setVideoAUrl("");
+              }}
+              onUrl={(url) => {
+                setVideoAUrl(url);
+                setVideoA(null);
+              }}
+            />
+            <UploadZone
+              label="비교 영상"
+              file={videoB}
+              url={videoBUrl}
+              onFile={(file) => {
+                setVideoB(file);
+                setVideoBUrl("");
+              }}
+              onUrl={(url) => {
+                setVideoBUrl(url);
+                setVideoB(null);
+              }}
+            />
           </div>
 
           {/* 에러 메시지 */}
@@ -179,16 +209,67 @@ export default function HomePage({ onNavigate, onAnalyze }) {
 }
 
 /* ---------- Upload Zone ---------- */
-const UploadZone = ({ label, file, onFile }) => {
+const UploadZone = ({ label, file, url, onFile, onUrl }) => {
   const ref = useRef();
   const [dragOver, setDragOver] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [tempUrl, setTempUrl] = useState("");
+  const isAllowedVideoFile = (f) => {
+    if (!f) return false;
+
+    const allowedTypes = ["video/mp4", "video/quicktime"];
+    const allowedExts = [".mp4", ".mov"];
+
+    const ext = f.name.toLowerCase().slice(f.name.lastIndexOf("."));
+
+    return allowedTypes.includes(f.type) || allowedExts.includes(ext);
+  };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
     const f = e.dataTransfer.files[0];
-    if (f && f.type === "video/mp4") onFile(f);
-    else alert("MP4 형식의 파일만 업로드할 수 있습니다.");
+    if (f && isAllowedVideoFile(f)) {
+      onFile(f);
+      setShowMenu(false);
+      setShowUrlInput(false);
+    } else {
+      alert("MP4 또는 MOV 형식의 파일만 업로드할 수 있습니다.");
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const f = e.target.files[0];
+
+    if (f && isAllowedVideoFile(f)) {
+      onFile(f);
+      setShowMenu(false);
+      setShowUrlInput(false);
+    } else if (f) {
+      alert("MP4 또는 MOV 형식의 파일만 업로드할 수 있습니다.");
+    }
+  };
+
+  const handleUrlSubmit = () => {
+    const trimmedUrl = tempUrl.trim();
+
+    if (!trimmedUrl) {
+      alert("URL을 입력해주세요.");
+      return;
+    }
+
+    if (
+      !trimmedUrl.includes("youtube.com") &&
+      !trimmedUrl.includes("youtu.be")
+    ) {
+      alert("유튜브 URL만 입력할 수 있습니다.");
+      return;
+    }
+
+    onUrl(trimmedUrl);
+    setShowMenu(false);
+    setShowUrlInput(false);
   };
 
   return (
@@ -197,7 +278,7 @@ const UploadZone = ({ label, file, onFile }) => {
       <div style={styles.uploadBadge}>♪ {label}</div>
 
       <div
-        onClick={() => ref.current.click()}
+        onClick={() => setShowMenu(true)}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -211,17 +292,78 @@ const UploadZone = ({ label, file, onFile }) => {
       >
         <div style={styles.uploadIcon}>↑</div>
         <div style={styles.uploadText}>
-          {file ? file.name : "영상을 드래그하거나 클릭해서 업로드"}
+          {file
+            ? file.name
+            : url
+            ? url
+            : "영상을 드래그하거나 클릭해서 업로드"}
         </div>
-        <div style={styles.uploadHint}>MP4 지원 · 최대 50MB · 최대 5분</div>
+
+        <div style={styles.uploadHint}>
+          MP4/MOV 파일 업로드 또는 유튜브 URL 입력
+        </div>
+
         <input
           ref={ref}
           type="file"
           hidden
-          accept="video/mp4"
-          onChange={(e) => onFile(e.target.files[0])}
+          accept="video/mp4,video/quicktime,.mp4,.mov"
+          onChange={handleFileSelect}
         />
       </div>
+      {showMenu && (
+        <div style={styles.uploadMenu}>
+          <button
+            type="button"
+            style={styles.uploadMenuBtn}
+            onClick={() => {
+              ref.current.click();
+            }}
+          >
+            동영상 업로드
+          </button>
+
+          <button
+            type="button"
+            style={styles.uploadMenuBtn}
+            onClick={() => {
+              setShowUrlInput(true);
+              setShowMenu(false);
+            }}
+          >
+            URL 업로드
+          </button>
+        </div>
+      )}
+
+      {showUrlInput && (
+        <div style={styles.urlBox}>
+          <input
+            value={tempUrl}
+            onChange={(e) => setTempUrl(e.target.value)}
+            placeholder="유튜브 URL을 입력하세요"
+            style={styles.urlInput}
+          />
+
+          <div style={styles.urlBtnRow}>
+            <button
+              type="button"
+              style={styles.urlSubmitBtn}
+              onClick={handleUrlSubmit}
+            >
+              등록
+            </button>
+
+            <button
+              type="button"
+              style={styles.urlCancelBtn}
+              onClick={() => setShowUrlInput(false)}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -545,5 +687,67 @@ const styles = {
     fontSize: 11.5,
     color: C.textSoft,
     lineHeight: 1.5,
+  },
+  uploadMenu: {
+    marginTop: 14,
+    display: "flex",
+    justifyContent: "center",
+    gap: 12,
+  },
+
+  uploadMenuBtn: {
+    padding: "10px 18px",
+    borderRadius: 999,
+    border: "1px solid rgba(46,139,87,0.25)",
+    background: "rgba(255,255,255,0.75)",
+    color: C.forest,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "'Rajdhani',sans-serif",
+  },
+
+  urlBox: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 14,
+    background: "rgba(255,255,255,0.55)",
+    border: "1px solid rgba(255,255,255,0.8)",
+  },
+
+  urlInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "12px 14px",
+    borderRadius: 10,
+    border: "1px solid rgba(46,139,87,0.3)",
+    outline: "none",
+    color: C.deep,
+    fontWeight: 600,
+  },
+
+  urlBtnRow: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 8,
+    marginTop: 10,
+  },
+
+  urlSubmitBtn: {
+    padding: "8px 16px",
+    borderRadius: 999,
+    border: "none",
+    background: C.forest,
+    color: "#fff",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  urlCancelBtn: {
+    padding: "8px 16px",
+    borderRadius: 999,
+    border: "1px solid rgba(46,139,87,0.25)",
+    background: "rgba(255,255,255,0.8)",
+    color: C.forest,
+    fontWeight: 700,
+    cursor: "pointer",
   },
 };

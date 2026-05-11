@@ -1,8 +1,9 @@
 import uuid
 import shutil
+import yt_dlp
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, Depends, Header, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, Header, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
 from core.config import TEMP_DIR
@@ -17,6 +18,26 @@ router = APIRouter()
 # 업로드가 끝난 뒤 최종 출력물을 {vid}.mp4로 rename해 두면,
 # 이어지는 /api/analyze 단계에서 repository.fetch_video가 바로 재사용한다.
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
+def download_youtube_video(url: str, output_path: Path) -> None:
+    if not url or ("youtube.com" not in url and "youtu.be" not in url):
+        raise HTTPException(status_code=400, detail="유튜브 URL만 입력할 수 있습니다.")
+    # playlist 전체 다운로드 방지
+    url = url.split("&list=")[0]
+
+    ydl_opts = {
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "merge_output_format": "mp4",
+        "outtmpl": str(output_path),
+        "quiet": True,
+        "noplaylist": True,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"URL 영상 다운로드 실패: {e}")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -45,8 +66,10 @@ async def get_current_user_id(authorization: str = Header(...)) -> str:
 # ─────────────────────────────────────────────────────────────
 @router.post("/upload", response_model=UploadResponse)
 async def upload_videos(
-    video_a: UploadFile = File(..., description="비교 영상 A (MP4)"),
-    video_b: UploadFile = File(..., description="비교 영상 B (MP4)"),
+    video_a: UploadFile | None = File(None, description="비교 영상 A"),
+    video_b: UploadFile | None = File(None, description="비교 영상 B"),
+    video_a_url: str | None = Form(None),
+    video_b_url: str | None = Form(None),
 
     user_id: str = Depends(get_current_user_id),
     #user_id: str = "test-user-id",
@@ -67,33 +90,81 @@ async def upload_videos(
     """
 
     # ── Step 1: 형식 검증 ────────────────────────────────────
-    validate_format(video_a)
-    validate_format(video_b)
 
-    # ── Step 2 & 3: 크기 검증 + 임시 저장 ───────────────────
-    bytes_a = await video_a.read()
-    bytes_b = await video_b.read()
 
-    validate_size(video_a, bytes_a)
-    validate_size(video_b, bytes_b)
+    if not video_a and not video_a_url:
+        raise HTTPException(status_code=400, detail="영상 A 파일 또는 URL이 필요합니다.")
+    if not video_b and not video_b_url:
+        raise HTTPException(status_code=400, detail="영상 B 파일 또는 URL이 필요합니다.")
+
 
     session_id = uuid.uuid4().hex
+
     tmp_raw_a = TEMP_DIR / f"{session_id}_a_raw.mp4"
     tmp_raw_b = TEMP_DIR / f"{session_id}_b_raw.mp4"
     tmp_out_a = TEMP_DIR / f"{session_id}_a_out.mp4"
     tmp_out_b = TEMP_DIR / f"{session_id}_b_out.mp4"
 
-    tmp_raw_a.write_bytes(bytes_a)
-    tmp_raw_b.write_bytes(bytes_b)
+    title_a = ""
+    title_b = ""
+    bytes_a = b""
+    bytes_b = b""
+
+    if video_a:
+        validate_format(video_a)
+        bytes_a = await video_a.read()
+        validate_size(video_a, bytes_a)
+
+        ext_a = Path(video_a.filename).suffix.lower()
+        tmp_raw_a = TEMP_DIR / f"{session_id}_a_raw{ext_a}"
+        tmp_raw_a.write_bytes(bytes_a)
+        title_a = video_a.filename
+    else:
+        await run_in_threadpool(download_youtube_video, video_a_url, tmp_raw_a)
+        bytes_a = tmp_raw_a.read_bytes()
+        title_a = video_a_url
+
+        dummy_file_a = type(
+            "DummyFile",
+            (),
+            {
+                "filename": title_a,
+                "content_type": "video/mp4",
+            },
+        )()
+        validate_size(dummy_file_a, bytes_a)
+
+    if video_b:
+        validate_format(video_b)
+        bytes_b = await video_b.read()
+        validate_size(video_b, bytes_b)
+
+        ext_b = Path(video_b.filename).suffix.lower()
+        tmp_raw_b = TEMP_DIR / f"{session_id}_b_raw{ext_b}"
+        tmp_raw_b.write_bytes(bytes_b)
+        title_b = video_b.filename
+    else:
+        await run_in_threadpool(download_youtube_video, video_b_url, tmp_raw_b)
+        bytes_b = tmp_raw_b.read_bytes()
+        title_b = video_b_url
+        dummy_file_b = type(
+            "DummyFile",
+            (),
+            {
+                "filename": title_b,
+                "content_type": "video/mp4",
+            },
+        )()
+        validate_size(dummy_file_b, bytes_b)
 
     try:
         # ── Step 4: 영상 길이 검증 (ffprobe, blocking → threadpool) ──
-        duration_a = await run_in_threadpool(validate_duration, tmp_raw_a, video_a.filename)
-        duration_b = await run_in_threadpool(validate_duration, tmp_raw_b, video_b.filename)
+        duration_a = await run_in_threadpool(validate_duration, tmp_raw_a, title_a)
+        duration_b = await run_in_threadpool(validate_duration, tmp_raw_b, title_b)
 
         # ── Step 5: 코덱 변환 (ffmpeg, blocking → threadpool) ────────
-        await run_in_threadpool(convert_to_h264, tmp_raw_a, tmp_out_a, video_a.filename)
-        await run_in_threadpool(convert_to_h264, tmp_raw_b, tmp_out_b, video_b.filename)
+        await run_in_threadpool(convert_to_h264, tmp_raw_a, tmp_out_a, title_a)
+        await run_in_threadpool(convert_to_h264, tmp_raw_b, tmp_out_b, title_b)
 
         codec_a = await run_in_threadpool(get_video_codec, tmp_out_a)
         codec_b = await run_in_threadpool(get_video_codec, tmp_out_b)
@@ -125,7 +196,7 @@ async def upload_videos(
         res_va = (
             sb.table("videos")
             .insert({"user_id": user_id, 
-                    "title": video_a.filename,
+                    "title": title_a,
                     "video_url": video_url_a, #url추가
                     }) 
             .execute()
@@ -135,7 +206,7 @@ async def upload_videos(
         res_vb = (
             sb.table("videos")
             .insert({"user_id": user_id,
-                    "title": video_b.filename,
+                    "title": title_b,
                     "video_url": video_url_b, #url추가
                     })
             .execute()
@@ -193,14 +264,14 @@ async def upload_videos(
         analysis_id=analysis_id,
         video_a=VideoMeta(
             vid=vid_a_id,
-            title=video_a.filename,
+            title=title_a,
             size_mb=round(len(bytes_a) / (1024 * 1024), 2),
             duration_sec=round(duration_a, 2),
             codec=codec_a,
         ),
         video_b=VideoMeta(
             vid=vid_b_id,
-            title=video_b.filename,
+            title=title_b,
             size_mb=round(len(bytes_b) / (1024 * 1024), 2),
             duration_sec=round(duration_b, 2),
             codec=codec_b,

@@ -13,6 +13,7 @@ ultralytics==8.4.0
 einops==0.8.0
 EasyDict
 yacs
+yt-dlp==2025.1.15
  
 # ===== LLM (report.py) =====
 langchain-openai==0.2.14

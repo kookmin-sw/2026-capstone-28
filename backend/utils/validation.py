@@ -5,11 +5,11 @@ from fastapi import UploadFile, HTTPException
 
 MAX_SIZE_MB = 50
 MAX_DURATION_SEC = 300  # 5분
-ALLOWED_MIME = {"video/mp4"}
-ALLOWED_EXT = {".mp4"}
+ALLOWED_MIME = {"video/mp4", "video/quicktime"}
+ALLOWED_EXT = {".mp4", ".mov"}
 
 # 에러 메시지에 공통으로 붙는 형식 안내
-_FORMAT_GUIDE = f"형식: ({MAX_SIZE_MB}MB 이하 / {MAX_DURATION_SEC}초 이하 / mp4)"
+_FORMAT_GUIDE = f"형식: ({MAX_SIZE_MB}MB 이하 / {MAX_DURATION_SEC}초 이하 / mp4, mov)"
 
 
 def _err(filename: str, reason: str) -> HTTPException:
@@ -18,7 +18,7 @@ def _err(filename: str, reason: str) -> HTTPException:
 
     출력 예시:
         영상 A.mp4가 형식에 맞지 않습니다. 다시 확인해주세요.
-        형식: (500MB 이하 / 300초 이하 / mp4)
+        형식: (500MB 이하 / 300초 이하 / mp4, mov)
         원인: 파일 크기 초과 (612.3MB)
     """
     detail = (
@@ -35,7 +35,7 @@ def validate_format(file: UploadFile) -> None:
     if file.content_type not in ALLOWED_MIME or ext not in ALLOWED_EXT:
         raise _err(
             file.filename,
-            f"mp4 형식이 아닙니다 (받은 형식: {ext or '알 수 없음'})",
+            f"mp4 또는 mov 형식이 아닙니다 (받은 형식: {ext or '알 수 없음'})",
         )
 
 

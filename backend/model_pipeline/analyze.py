@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 
 from model_pipeline.object_extractor import extract_objects
 from model_pipeline.bert_embedder import embed_motion
+from model_pipeline.bert_3d_lifting import extract_3d_from_hrnet
 from model_pipeline.inferrence import infer_similarity
 from model_pipeline.report import generate_similarity_report
 from model_pipeline.result_formatter import format_result
@@ -37,6 +38,30 @@ def analyze(video_a_id: int, video_b_id: int):
 
     logger.info(f"[Step1] 다운로드+추출 완료: {time.time() - t0:.2f}s (병렬)")
 
+
+
+    # 지금까지 3d extract_object 까지는 hrnet 결과물 추출되는걸로 만들어놨음
+    # 여기서 내가 motion bert 3d lifting 까지만 일단 만들어놓을게.
+    # 모델 구조를 이해를 완벽히 못 한 거 같아서
+
+    # ✅ 3D Lifting
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        feature_3d_a = executor.submit(extract_3d_from_hrnet, feat_a)
+        feature_3d_b = executor.submit(extract_3d_from_hrnet, feat_b)
+
+        done, _ = wait([feature_3d_a, feature_3d_b], return_when=FIRST_EXCEPTION)
+        for f in done:
+            if f.exception():
+                raise f.exception()
+        
+        lifting_3d_a = feature_3d_a.result()
+        lifting_3d_b = feature_3d_b.result()
+
+    logger.info(f"[Step2-1] MotionBERT 3D Lifting 완료")
+
+
+
+    #==================================================================
     # ================================================================
     # Step 2 — MotionBERT 임베딩 (두 영상 동시)
     # PyTorch CPU 연산은 GIL 해제 구간 있어서 Thread로도 효과 있음

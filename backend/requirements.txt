@@ -10,8 +10,9 @@ torch
 numpy==1.26.4
 opencv-python==4.10.0.84
 ultralytics==8.4.0
-mediapipe==0.10.14
 einops==0.8.0
+EasyDict
+yacs
  
 # ===== LLM (report.py) =====
 langchain-openai==0.2.14
@@ -26,6 +27,12 @@ requests==2.32.3
 # ===== Util =====
 pydantic==2.9.2
 pydantic-settings==2.5.2
+ 
+# ===== HRNet 사전 준비 =====
+# backend/ 안에 HRNet 레포 클론 필요:
+#   git clone https://github.com/HRNet/HRNet-Human-Pose-Estimation.git
+# 가중치 배치:
+#   models/hrnet/weights/pose_hrnet_w48_384x288.pth
  
 # ===== 시스템 설치 필요 (pip 아님) =====
 # ffmpeg — 아래 방법으로 별도 설치

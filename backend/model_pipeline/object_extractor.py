@@ -41,7 +41,7 @@ def extract_object_from_path(video_path: str, sample_rate=None) -> dict:
         dict: fps, num_frames, width, height, keypoints [F, 17, 3]
     """
     yolo = ModelRegistry.get().yolo
-    hrnet_model, device = load_hrnet()
+    hrnet_model, device = ModelRegistry.get().hrnet
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -98,7 +98,7 @@ def extract_object_from_path(video_path: str, sample_rate=None) -> dict:
 
     keypoints_seq = np.stack(keypoints_seq, axis=0)  # [F, 17, 3]
 
-    # ⭐ torso 정규화 (HRNet 모델은 정규화 데이터로 학습됨)
+    # ⭐ torso 정규화
     keypoints_seq = preprocess_for_motionbert(keypoints_seq)
 
     return {

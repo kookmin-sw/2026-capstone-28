@@ -21,7 +21,7 @@ class ModelRegistry:
     def __init__(self):
         # 각 모델 슬롯 — load_all() 호출 후에 채워집니다
         self.yolo = None             # ultralytics.YOLO
-        self.mediapipe_pose = None   # mediapipe Pose 인스턴스
+        self.hrnet = None   # mediapipe Pose 인스턴스
         self.motion_bert = None      # MotionBERT (DSTformer) torch.nn.Module
         self.similarity_model = None # GlobalSimilarityModel (GCN + Pooling + MLP 통합)
         self.gcn = None  
@@ -42,7 +42,7 @@ class ModelRegistry:
 
         logger.info("📦 모델 로드 시작...")
         self._load_yolo()
-        self._load_mediapipe()
+        self._load_hrnet()
         self._load_motion_bert()
         self._load_similarity_model()
         self._load_gcn()
@@ -55,10 +55,10 @@ class ModelRegistry:
         self.yolo = load_yolo()
         logger.info("  ✓ YOLO 로드 완료")
 
-    def _load_mediapipe(self) -> None:
-        from models.mediapipe.pose_extractor import load_mediapipe_pose
-        self.mediapipe_pose = load_mediapipe_pose()
-        logger.info("  ✓ MediaPipe 로드 완료")
+    def _load_hrnet(self) -> None:
+        from models.HRnet.HRnet_loader import load_hrnet
+        self.hrnet = load_hrnet()
+        logger.info("  ✓ Hrnet 로드 완료")
 
     def _load_motion_bert(self) -> None:
         from models.motion_bert.embedder import load_motion_bert

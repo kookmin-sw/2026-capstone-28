@@ -14,10 +14,6 @@ backend/test_data/
 *.pth
 *.pt
 *.ckpt
-<<<<<<< HEAD
-=======
-
->>>>>>> develop
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -26,6 +22,10 @@ __pycache__/
 
 # C extensions
 *.so
+
+# md 파일
+README.md
+
 
 # Distribution / packaging
 .Python

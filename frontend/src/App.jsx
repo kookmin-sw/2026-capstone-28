@@ -6,6 +6,7 @@ import AboutUsPage from "./about_us_page";
 import ProfilePage from "./profile_page";
 import ResultPage from "./result_page";
 import LoadingPage from "./loading_page";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 const BACKEND_URL = "http://localhost:8000";
 
@@ -14,6 +15,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisError, setAnalysisError] = useState(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -78,7 +80,10 @@ export default function App() {
   };
 
   const logoutBtn = session && page !== "login" && (
-    <button onClick={handleLogout} style={logoutBtnStyle}>
+    <button onClick={handleLogout} style={{
+      ...logoutBtnStyle,
+      ...(isMobile ? { padding: "6px 14px", fontSize: 11, top: 14, left: 14 } : {}),
+    }}>
       로그아웃
     </button>
   );

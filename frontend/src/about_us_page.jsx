@@ -136,9 +136,9 @@ export default function AboutUsPage({ onNavigate, isLoggedIn }) {
               ...(isMobile ? { gap: 20, paddingTop: 20 } : {}),
             }}>
               {[
-                ["70 %", "분석 정확도"],
-                ["12K+", "누적 분석"],
-                ["60초", "평균 처리"],
+                ["85 %", "분석 정확도"],
+                ["100+", "누적 분석"],
+                ["2 Min", "평균 처리"],
                 ["24/7", "서비스 운영"],
               ].map(([n, l]) => (
                 <div key={l} style={styles.statBox}>

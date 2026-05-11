@@ -16,7 +16,7 @@ const C = {
 };
 
 const NAV_ITEMS = [
-  { key: "home", label: "Home" },
+  { key: "about", label: "Home" },
   { key: "analyse", label: "Analyse" },
   { key: "profile", label: "Profile" },
 ];
@@ -30,7 +30,7 @@ const FEATURES = [
   {
     icon: "⚡",
     title: "빠른 처리 속도",
-    desc: "최적화된 알고리즘으로 평균 60초 이내에 분석을 완료해 빠르게 결과를 확인할 수 있습니다.",
+    desc: "최적화된 알고리즘으로 평균 최대 3분 이내에 분석을 완료해 빠르게 결과를 확인할 수 있습니다.",
   },
   {
     icon: "📊",

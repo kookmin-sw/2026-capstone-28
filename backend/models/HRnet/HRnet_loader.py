@@ -69,8 +69,22 @@ def load_hrnet(weight_path=None):
     if _cache["model"] is not None:
         return _cache["model"], _cache["device"]
 
-    from config import cfg
-    from models.pose_hrnet import get_pose_net
+
+    import importlib.util
+
+    # config 모듈 로드
+    _cfg_path = os.path.join(_HRNET_LIB, "config", "default.py")
+    _cfg_spec = importlib.util.spec_from_file_location("hrnet_config", _cfg_path)
+    _cfg_module = importlib.util.module_from_spec(_cfg_spec)
+    _cfg_spec.loader.exec_module(_cfg_module)
+    cfg = _cfg_module._C
+
+    # pose_hrnet 모듈 로드
+    _model_path = os.path.join(_HRNET_LIB, "models", "pose_hrnet.py")
+    _model_spec = importlib.util.spec_from_file_location("pose_hrnet", _model_path)
+    _model_module = importlib.util.module_from_spec(_model_spec)
+    _model_spec.loader.exec_module(_model_module)
+    get_pose_net = _model_module.get_pose_net
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 

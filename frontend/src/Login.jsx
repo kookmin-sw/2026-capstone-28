@@ -15,46 +15,106 @@ const C = {
 };
 
 export default function Login({ onLogin }) {
+  const [mode, setMode] = useState("login"); // "login" | "signup"
+
+  // 로그인 필드
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(false);
 
+  // 회원가입 추가 필드
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPw, setSignupPw] = useState("");
+  const [signupPwConfirm, setSignupPwConfirm] = useState("");
+  const [showSignupPw, setShowSignupPw] = useState(false);
+
+  // 로딩 상태
+  const [loading, setLoading] = useState(false);
+
+  // ===== 로그인 =====
   const handleLogin = async () => {
     if (!email || !pw) {
       alert("이메일과 비밀번호를 모두 입력해주세요.");
       return;
     }
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: pw,
-    });
-    if (error) {
-      alert(error.message);
-      return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: pw,
+      });
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      onLogin && onLogin();
+    } finally {
+      setLoading(false);
     }
-    // alert("로그인 성공!");
-    onLogin && onLogin();
   };
 
-  // ⭐⭐⭐ --- START: 회원가입 함수 추가 --- ⭐⭐⭐
+  // ⭐ 기존 문경이 부분인데, 같이 수정됐어 ===== 회원가입 =====
   const handleSignUp = async () => {
-    if (!email || !pw) {
-      alert("회원가입을 위해 이메일과 비밀번호를 모두 입력해주세요.");
+    if (!signupName || !signupEmail || !signupPw || !signupPwConfirm) {
+      alert("모든 항목을 입력해주세요.");
       return;
     }
-    const { data, error } = await supabase.auth.signUp({
-      email: email,
-      password: pw,
-    });
-    if (error) {
-      alert(error.message);
+    if (signupPw !== signupPwConfirm) {
+      alert("비밀번호가 일치하지 않습니다.");
       return;
     }
-    // Supabase는 기본적으로 이메일 인증을 요구합니다.
-    alert("회원가입 성공! 이메일을 확인하여 계정을 활성화해주세요.");
+    if (signupPw.length < 6) {
+      alert("비밀번호는 6자 이상이어야 합니다.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signupPw,
+        options: {
+          data: { user_name: signupName },
+        },
+      });
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      // profiles 테이블에 username 저장
+      if (data?.user) {
+        await supabase.from("profiles").upsert({
+          id: data.user.id,
+          user_name: signupName,
+        });
+      }
+
+      alert("회원가입 성공! 이메일을 확인하여 계정을 활성화해주세요.");
+      // 로그인 모드로 전환 + 이메일 자동 채우기
+      setEmail(signupEmail);
+      setPw("");
+      setMode("login");
+    } finally {
+      setLoading(false);
+    }
   };
-  // ⭐⭐⭐ --- END: 회원가입 함수 추가 --- ⭐⭐⭐
+
+
+  // ⭐ 여기까지 회원가입 부분
+
+  // ===== 모드 전환 =====
+  const switchToSignup = () => {
+    setSignupEmail(email); // 입력 중이던 이메일 이어받기
+    setMode("signup");
+  };
+
+  const switchToLogin = () => {
+    setEmail(signupEmail);
+    setMode("login");
+  };
 
   return (
     <div style={styles.root}>
@@ -62,12 +122,21 @@ export default function Login({ onLogin }) {
         href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap"
         rel="stylesheet"
       />
+      <style>{`
+        @keyframes cardFadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div style={styles.bgLayer} />
       <div style={styles.bgTint} />
+
+      {/* ===== 좌측 브랜드 ===== */}
       <div style={styles.left}>
         <div style={styles.badge}>
           <span style={styles.badgeDot} />
-          AI · DANCE ANALYSIS STUDIO
+          AI · DANCE ANALYSIS STUDIO
         </div>
         <h1 style={styles.title}>
           K-pop
@@ -92,73 +161,184 @@ export default function Login({ onLogin }) {
           ))}
         </div>
       </div>
+
+      {/* ===== 우측 글래스 카드 ===== */}
       <div style={styles.cardWrap}>
         <div style={styles.cardGlow} />
-        <div style={styles.card}>
+        <div style={styles.card} key={mode}>
           <div style={styles.cardSheen} />
           <div style={styles.cardAccent} />
-          <div style={styles.cardHeader}>
-            <h2 style={styles.cardTitle}>로그인</h2>
-            <p style={styles.cardSub}>계정에 로그인하여 분석을 시작하세요</p>
-          </div>
-          <Field label="이메일">
-            <InputBox icon="✉" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
-          </Field>
-          <Field label="비밀번호">
-            <InputBox
-              icon="🔒"
-              type={showPw ? "text" : "password"}
-              placeholder="••••••••"
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              right={
-                <button type="button" onClick={() => setShowPw((v) => !v)} style={styles.eyeBtn}>
-                  {showPw ? "🙈" : "👁"}
-                </button>
-              }
-            />
-          </Field>
-          <div style={styles.optionsRow}>
-            <label style={styles.checkLabel}>
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                style={styles.checkbox}
-              />
-              로그인 상태 유지
-            </label>
-            <a style={styles.link}>비밀번호 찾기</a>
-          </div>
-          <button style={styles.primaryBtn} onClick={handleLogin}>
-            로그인
-            <span style={{ marginLeft: 8 }}>→</span>
-          </button>
-          <div style={styles.divider}>
-            <span style={styles.dividerLine} />
-            <span style={styles.dividerText}>또는</span>
-            <span style={styles.dividerLine} />
-          </div>
-          <button style={styles.googleBtn}>
-            <span style={{ fontSize: 16, marginRight: 8 }}>G</span>
-            Google로 계속하기
-          </button>
-          <p style={styles.footerText}>
-            계정이 없으신가요? 
-            {/* ⭐⭐⭐ --- START: onClick 연결 --- ⭐⭐⭐ */}
-            <a style={styles.linkBold} onClick={handleSignUp}>회원가입</a>
-            {/* ⭐⭐⭐ --- END: onClick 연결 --- ⭐⭐⭐ */}
-          </p>
-          <p style={styles.terms}>
-            계속 진행함으로써 당사의 <u>이용약관</u>과 <u>개인정보처리방침</u>에 동의합니다.
-          </p>
+
+          {mode === "login" ? (
+            /* ========== 로그인 폼 ========== */
+            <div style={styles.cardInner}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>로그인</h2>
+                <p style={styles.cardSub}>계정에 로그인하여 분석을 시작하세요</p>
+              </div>
+
+              <Field label="이메일">
+                <InputBox
+                  icon="✉"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                />
+              </Field>
+
+              <Field label="비밀번호">
+                <InputBox
+                  icon="🔒"
+                  type={showPw ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                  right={
+                    <button type="button" onClick={() => setShowPw((v) => !v)} style={styles.eyeBtn}>
+                      {showPw ? "🙈" : "👁"}
+                    </button>
+                  }
+                />
+              </Field>
+
+              <div style={styles.optionsRow}>
+                <label style={styles.checkLabel}>
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    style={styles.checkbox}
+                  />
+                  로그인 상태 유지
+                </label>
+                <a style={styles.link}>비밀번호 찾기</a>
+              </div>
+
+              <button
+                style={{
+                  ...styles.primaryBtn,
+                  ...(loading ? { opacity: 0.7, pointerEvents: "none" } : {}),
+                }}
+                onClick={handleLogin}
+              >
+                {loading ? "로그인 중..." : "로그인"}
+                {!loading && <span style={{ marginLeft: 8 }}>→</span>}
+              </button>
+
+              <div style={styles.divider}>
+                <span style={styles.dividerLine} />
+                <span style={styles.dividerText}>또는</span>
+                <span style={styles.dividerLine} />
+              </div>
+
+              <button style={styles.googleBtn}>
+                <span style={{ fontSize: 16, marginRight: 8 }}>G</span>
+                Google로 계속하기
+              </button>
+
+              <p style={styles.footerText}>
+                계정이 없으신가요?{" "}
+                <a style={styles.linkBold} onClick={switchToSignup}>
+                  회원가입
+                </a>
+              </p>
+              <p style={styles.terms}>
+                계속 진행함으로써 당사의 <u>이용약관</u>과 <u>개인정보처리방침</u>에 동의합니다.
+              </p>
+            </div>
+          ) : (
+            /* ========== 회원가입 폼 ========== */
+            <div style={styles.cardInner}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>회원가입</h2>
+                <p style={styles.cardSub}>새 계정을 만들어 분석을 시작하세요</p>
+              </div>
+
+              <Field label="이름">
+                <InputBox
+                  icon="👤"
+                  type="text"
+                  placeholder="홍길동"
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
+                />
+              </Field>
+
+              <Field label="이메일">
+                <InputBox
+                  icon="✉"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
+                />
+              </Field>
+
+              <Field label="비밀번호">
+                <InputBox
+                  icon="🔒"
+                  type={showSignupPw ? "text" : "password"}
+                  placeholder="6자 이상"
+                  value={signupPw}
+                  onChange={(e) => setSignupPw(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
+                  right={
+                    <button type="button" onClick={() => setShowSignupPw((v) => !v)} style={styles.eyeBtn}>
+                      {showSignupPw ? "🙈" : "👁"}
+                    </button>
+                  }
+                />
+              </Field>
+
+              <Field label="비밀번호 확인">
+                <InputBox
+                  icon="🔒"
+                  type={showSignupPw ? "text" : "password"}
+                  placeholder="비밀번호 재입력"
+                  value={signupPwConfirm}
+                  onChange={(e) => setSignupPwConfirm(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
+                />
+                {signupPwConfirm && signupPw !== signupPwConfirm && (
+                  <div style={styles.errorHint}>비밀번호가 일치하지 않습니다</div>
+                )}
+              </Field>
+
+              <button
+                style={{
+                  ...styles.primaryBtn,
+                  ...(loading ? { opacity: 0.7, pointerEvents: "none" } : {}),
+                  marginTop: 8,
+                }}
+                onClick={handleSignUp}
+              >
+                {loading ? "가입 중..." : "회원가입"}
+                {!loading && <span style={{ marginLeft: 8 }}>→</span>}
+              </button>
+
+              <p style={styles.footerText}>
+                이미 계정이 있으신가요?{" "}
+                <a style={styles.linkBold} onClick={switchToLogin}>
+                  로그인
+                </a>
+              </p>
+              <p style={styles.terms}>
+                회원가입 시 당사의 <u>이용약관</u>과 <u>개인정보처리방침</u>에 동의합니다.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+/* ---------- Sub Components ---------- */
 const Field = ({ label, children }) => (
   <div style={{ marginBottom: 16 }}>
     <div style={styles.fieldLabel}>{label}</div>
@@ -174,7 +354,7 @@ const InputBox = ({ icon, right, ...props }) => (
   </div>
 );
 
-// (이 아래의 styles 객체는 내용이 길어 생략합니다. 기존 코드와 동일합니다.)
+/* ---------- Styles ---------- */
 const styles = {
   root: {
     position: "relative",
@@ -207,6 +387,8 @@ const styles = {
       "radial-gradient(1200px 600px at 80% 30%, rgba(255,255,255,0.35), transparent 60%), radial-gradient(900px 500px at 20% 80%, rgba(46,139,87,0.08), transparent 60%)",
     pointerEvents: "none",
   },
+
+  /* ----- Left brand area ----- */
   left: {
     position: "relative",
     zIndex: 1,
@@ -276,6 +458,8 @@ const styles = {
     letterSpacing: 0.8,
     marginTop: 2,
   },
+
+  /* ----- Right glass card ----- */
   cardWrap: {
     position: "relative",
     zIndex: 1,
@@ -307,6 +491,7 @@ const styles = {
       "inset 1px 0 0 rgba(255,255,255,0.5)",
     ].join(", "),
     overflow: "hidden",
+    animation: "cardFadeIn 0.35s ease-out",
   },
   cardSheen: {
     position: "absolute",
@@ -327,6 +512,9 @@ const styles = {
     background: `linear-gradient(180deg,${C.forest},${C.mint})`,
     boxShadow: `0 0 20px ${C.mint}`,
   },
+  cardInner: {
+    animation: "cardFadeIn 0.3s ease-out",
+  },
   cardHeader: { marginBottom: 28, paddingLeft: 6 },
   cardTitle: {
     fontFamily: "'Chakra Petch',sans-serif",
@@ -340,6 +528,8 @@ const styles = {
     fontSize: 13,
     margin: "8px 0 0",
   },
+
+  /* ----- Form fields ----- */
   fieldLabel: {
     fontSize: 12,
     fontWeight: 700,
@@ -390,6 +580,15 @@ const styles = {
     padding: 6,
     color: C.textSoft,
   },
+  errorHint: {
+    fontSize: 11,
+    color: "#D32F2F",
+    marginTop: 6,
+    paddingLeft: 4,
+    fontWeight: 600,
+  },
+
+  /* ----- Options & buttons ----- */
   optionsRow: {
     display: "flex",
     justifyContent: "space-between",
@@ -415,7 +614,7 @@ const styles = {
     cursor: "pointer",
     fontFamily: "'Rajdhani',sans-serif",
     boxShadow: `0 12px 30px rgba(46,139,87,0.4), inset 0 1px 0 rgba(255,255,255,0.3)`,
-    transition: "transform 0.15s",
+    transition: "all 0.2s",
   },
   divider: {
     display: "flex",

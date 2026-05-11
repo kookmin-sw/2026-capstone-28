@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 import bgImage from "./assets/profile_background.png";
 
@@ -51,6 +52,7 @@ const STEPS = [
 
 export default function AboutUsPage({ onNavigate, isLoggedIn }) {
   const [activeNav, setActiveNav] = useState("about");
+  const isMobile = useIsMobile();
 
   return (
     <div style={styles.root}>
@@ -66,7 +68,10 @@ export default function AboutUsPage({ onNavigate, isLoggedIn }) {
       {isLoggedIn && (
         <nav style={styles.navWrap}>
           <div style={styles.navGlow} />
-          <div style={styles.nav}>
+          <div style={{
+            ...styles.nav,
+            ...(isMobile ? { gap: 2, padding: 4 } : {}),
+          }}>
             <div style={styles.navSheen} />
             {NAV_ITEMS.map((item) => {
               const active = activeNav === item.key;
@@ -74,7 +79,11 @@ export default function AboutUsPage({ onNavigate, isLoggedIn }) {
                 <button
                   key={item.key}
                   onClick={() => onNavigate && onNavigate(item.key)}
-                  style={{ ...styles.navBtn, ...(active ? styles.navBtnActive : {}) }}
+                  style={{
+                    ...styles.navBtn,
+                    ...(isMobile ? { padding: "8px 14px", fontSize: 12 } : {}),
+                    ...(active ? styles.navBtnActive : {}),
+                  }}
                 >
                   {item.label}
                 </button>
@@ -85,11 +94,17 @@ export default function AboutUsPage({ onNavigate, isLoggedIn }) {
       )}
 
       {/* ===== Main Content ===== */}
-      <main style={styles.main}>
+      <main style={{
+        ...styles.main,
+        ...(isMobile ? { padding: "90px 5% 60px" } : {}),
+      }}>
         {/* ----- HERO ----- */}
         <section style={styles.heroWrap}>
           <div style={styles.heroGlow} />
-          <div style={styles.heroCard}>
+          <div style={{
+            ...styles.heroCard,
+            ...(isMobile ? { padding: "32px 20px", borderRadius: 24 } : {}),
+          }}>
             <div style={styles.cardSheen} />
 
             <div style={styles.badge}>
@@ -97,19 +112,29 @@ export default function AboutUsPage({ onNavigate, isLoggedIn }) {
               ABOUT&nbsp;K-POP&nbsp;VISUAL&nbsp;STUDIO
             </div>
 
-            <h1 style={styles.heroTitle}>
+            <h1 style={{
+              ...styles.heroTitle,
+              ...(isMobile ? { fontSize: 30, letterSpacing: -1 } : {}),
+            }}>
               안무를 데이터로,
               <br />
               <span style={styles.titleGradient}>춤을 과학으로</span>
             </h1>
 
-            <p style={styles.heroDesc}>
+            <p style={{
+              ...styles.heroDesc,
+              ...(isMobile ? { fontSize: 14, margin: "16px auto 24px" } : {}),
+            }}>
               K-pop Visual Studio는 AI 기반 영상 분석 기술로 두 안무의 유사도를 정밀하게 측정하는 서비스입니다.
-              <br />
+              {!isMobile && <br />}
+              {isMobile ? " " : ""}
               안무 창작자, 댄서, 그리고 K-pop을 사랑하는 모든 사람들을 위해 만들어졌습니다.
             </p>
 
-            <div style={styles.statRow}>
+            <div style={{
+              ...styles.statRow,
+              ...(isMobile ? { gap: 20, paddingTop: 20 } : {}),
+            }}>
               {[
                 ["70 %", "분석 정확도"],
                 ["12K+", "누적 분석"],
@@ -117,7 +142,10 @@ export default function AboutUsPage({ onNavigate, isLoggedIn }) {
                 ["24/7", "서비스 운영"],
               ].map(([n, l]) => (
                 <div key={l} style={styles.statBox}>
-                  <div style={styles.statNum}>{n}</div>
+                  <div style={{
+                    ...styles.statNum,
+                    ...(isMobile ? { fontSize: 22 } : {}),
+                  }}>{n}</div>
                   <div style={styles.statLabel}>{l}</div>
                 </div>
               ))}
@@ -130,54 +158,109 @@ export default function AboutUsPage({ onNavigate, isLoggedIn }) {
           <div style={styles.titleAccent} />
           <div>
             <div style={styles.sectionEyebrow}>OUR MISSION</div>
-            <h2 style={styles.sectionTitle}>우리가 만드는 가치</h2>
+            <h2 style={{
+              ...styles.sectionTitle,
+              ...(isMobile ? { fontSize: 22 } : {}),
+            }}>우리가 만드는 가치</h2>
           </div>
         </section>
 
-        <div style={styles.featureGrid}>
+        <div style={{
+          ...styles.featureGrid,
+          ...(isMobile ? { gridTemplateColumns: "1fr", gap: 14 } : {}),
+        }}>
           {FEATURES.map((f) => (
-            <div key={f.title} style={styles.featureCard}>
+            <div key={f.title} style={{
+              ...styles.featureCard,
+              ...(isMobile ? {
+                padding: "20px 18px",
+                display: "flex", alignItems: "flex-start", gap: 14,
+              } : {}),
+            }}>
               <div style={styles.cardSheen} />
-              <div style={styles.featureIcon}>{f.icon}</div>
-              <div style={styles.featureTitle}>{f.title}</div>
-              <p style={styles.featureDesc}>{f.desc}</p>
+              <div style={{
+                ...styles.featureIcon,
+                ...(isMobile ? { marginBottom: 0, flexShrink: 0 } : {}),
+              }}>{f.icon}</div>
+              <div>
+                <div style={styles.featureTitle}>{f.title}</div>
+                <p style={styles.featureDesc}>{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>
 
         {/* ----- HOW IT WORKS ----- */}
-        <section style={{ ...styles.sectionHeader, marginTop: 60 }}>
+        <section style={{
+          ...styles.sectionHeader,
+          marginTop: isMobile ? 40 : 60,
+        }}>
           <div style={styles.titleAccent} />
           <div>
             <div style={styles.sectionEyebrow}>HOW IT WORKS</div>
-            <h2 style={styles.sectionTitle}>사용 방법</h2>
+            <h2 style={{
+              ...styles.sectionTitle,
+              ...(isMobile ? { fontSize: 22 } : {}),
+            }}>사용 방법</h2>
           </div>
         </section>
 
-        <div style={styles.stepGrid}>
+        <div style={{
+          ...styles.stepGrid,
+          ...(isMobile ? { flexDirection: "column", gap: 14 } : {}),
+        }}>
           {STEPS.map((s, i) => (
             <React.Fragment key={s.n}>
-              <div style={styles.stepCard}>
+              <div style={{
+                ...styles.stepCard,
+                ...(isMobile ? {
+                  display: "flex", alignItems: "flex-start", gap: 16,
+                  padding: "20px 18px",
+                } : {}),
+              }}>
                 <div style={styles.cardSheen} />
-                <div style={styles.stepNum}>{s.n}</div>
-                <div style={styles.stepTitle}>{s.title}</div>
-                <p style={styles.stepDesc}>{s.desc}</p>
+                <div style={{
+                  ...styles.stepNum,
+                  ...(isMobile ? { marginBottom: 0, flexShrink: 0 } : {}),
+                }}>{s.n}</div>
+                <div>
+                  <div style={styles.stepTitle}>{s.title}</div>
+                  <p style={styles.stepDesc}>{s.desc}</p>
+                </div>
               </div>
-              {i < STEPS.length - 1 && <div style={styles.stepConnector}>→</div>}
+              {/* 모바일에서 화살표 숨김 */}
+              {!isMobile && i < STEPS.length - 1 && (
+                <div style={styles.stepConnector}>→</div>
+              )}
             </React.Fragment>
           ))}
         </div>
 
         {/* ----- CTA ----- */}
-        <section style={styles.ctaWrap}>
+        <section style={{
+          ...styles.ctaWrap,
+          ...(isMobile ? { marginTop: 40 } : {}),
+        }}>
           <div style={styles.ctaGlow} />
-          <div style={styles.ctaCard}>
+          <div style={{
+            ...styles.ctaCard,
+            ...(isMobile ? { padding: "32px 20px", borderRadius: 22 } : {}),
+          }}>
             <div style={styles.cardSheen} />
-            <h3 style={styles.ctaTitle}>지금 바로 시작해보세요</h3>
-            <p style={styles.ctaDesc}>
+            <h3 style={{
+              ...styles.ctaTitle,
+              ...(isMobile ? { fontSize: 22 } : {}),
+            }}>지금 바로 시작해보세요</h3>
+            <p style={{
+              ...styles.ctaDesc,
+              ...(isMobile ? { fontSize: 13 } : {}),
+            }}>
               두 영상을 업로드하는 것만으로 AI 기반 안무 분석이 시작됩니다.
             </p>
-            <button style={styles.ctaBtn} onClick={() => onNavigate && onNavigate(isLoggedIn ? "analyse" : "login")}>
+            <button style={{
+              ...styles.ctaBtn,
+              ...(isMobile ? { padding: "14px 32px", fontSize: 14, width: "100%" } : {}),
+            }} onClick={() => onNavigate && onNavigate(isLoggedIn ? "analyse" : "login")}>
               <span style={{ marginRight: 10 }}>✦</span>
               {isLoggedIn ? "분석 시작하기" : "로그인하고 시작하기"}
             </button>

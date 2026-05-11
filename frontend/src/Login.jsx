@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import bgImage from "./assets/background.png";
 import { supabase } from "./lib/supabaseClient";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 // ===== Color tokens =====
 const C = {
@@ -24,6 +25,7 @@ export default function Login({ onLogin }) {
   
   // ⭐ 로그인/회원가입 모드 전환
   const [mode, setMode] = useState("login"); // "login" or "signup"
+  const isMobile = useIsMobile();
 
   // 이메일 로그인
   const handleLogin = async () => {
@@ -105,13 +107,23 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div style={styles.root}>
+    <div style={{
+      ...styles.root,
+      ...(isMobile ? {
+        gridTemplateColumns: "1fr",
+        padding: "0 5%",
+        gap: 0,
+        alignItems: "center",
+        justifyItems: "center",
+      } : {}),
+    }}>
       <link
         href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap"
         rel="stylesheet"
       />
       <div style={styles.bgLayer} />
       <div style={styles.bgTint} />
+      {!isMobile && (
       <div style={styles.left}>
         <div style={styles.badge}>
           <span style={styles.badgeDot} />
@@ -140,13 +152,23 @@ export default function Login({ onLogin }) {
           ))}
         </div>
       </div>
-      <div style={styles.cardWrap}>
+      )}
+      <div style={{
+        ...styles.cardWrap,
+        ...(isMobile ? { width: "100%", justifySelf: "center" } : {}),
+      }}>
         <div style={styles.cardGlow} />
-        <div style={styles.card}>
+        <div style={{
+          ...styles.card,
+          ...(isMobile ? { padding: "36px 24px 28px", borderRadius: 24 } : {}),
+        }}>
           <div style={styles.cardSheen} />
           <div style={styles.cardAccent} />
           <div style={styles.cardHeader}>
-            <h2 style={styles.cardTitle}>
+            <h2 style={{
+              ...styles.cardTitle,
+              ...(isMobile ? { fontSize: 28 } : {}),
+            }}>
               {mode === "login" ? "로그인" : "회원가입"}
             </h2>
             <p style={styles.cardSub}>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 const C = {
   deep: "#0B3B2E",
@@ -24,6 +25,7 @@ const STAGES = [
 export default function LoadingPage() {
   const [stageIdx, setStageIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const isMobile = useIsMobile();
 
   // 단계별 메시지 자동 전환 (매 12초)
   useEffect(() => {
@@ -63,19 +65,25 @@ export default function LoadingPage() {
 
       <div style={styles.center}>
         {/* 회전 링 */}
-        <div style={styles.spinnerWrap}>
+        <div style={{
+          ...styles.spinnerWrap,
+          ...(isMobile ? { width: 100, height: 100, margin: "0 auto 28px" } : {}),
+        }}>
           <div style={styles.spinnerOuter} />
           <div style={styles.spinnerInner} />
           <div style={styles.spinnerCore} />
         </div>
 
         {/* 메시지 (key로 fadeIn 재생성) */}
-        <h2 style={styles.title} key={stageIdx}>
+        <h2 style={{
+          ...styles.title,
+          ...(isMobile ? { fontSize: 20, padding: "0 20px" } : {}),
+        }} key={stageIdx}>
           {STAGES[stageIdx]}
         </h2>
 
         <p style={styles.subtitle}>
-          분석에는 약 1분 정도 소요됩니다
+          분석에는 약 2분 정도 소요됩니다
         </p>
 
         <div style={styles.elapsed}>

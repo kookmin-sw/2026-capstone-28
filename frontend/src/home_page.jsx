@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { supabase } from "./lib/supabaseClient"; // 프로젝트 내 경로에 맞게 수정
 import bgImage from "./assets/profile_background.png";
-
+import { useIsMobile } from "./hooks/useIsMobile";
 
 // ===== Color tokens =====
 const C = {
@@ -29,6 +29,7 @@ export default function HomePage({ onNavigate, onAnalyze }) {
   const [videoBUrl, setVideoBUrl] = useState("");
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleAnalyze = async () => {
     if ((!videoA && !videoAUrl) || (!videoB && !videoBUrl)) {
@@ -107,6 +108,7 @@ export default function HomePage({ onNavigate, onAnalyze }) {
                 onClick={() => onNavigate && onNavigate(item.key)}
                 style={{
                   ...styles.navBtn,
+                  ...(isMobile ? { padding: "8px 14px", fontSize: 12 } : {}),
                   ...(active ? styles.navBtnActive : {}),
                 }}
               >
@@ -118,24 +120,39 @@ export default function HomePage({ onNavigate, onAnalyze }) {
       </nav>
 
       {/* ===== Main Content ===== */}
-      <main style={styles.main}>
+      <main style={{
+        ...styles.main,
+        ...(isMobile ? { padding: "85px 4% 40px" } : {}),
+      }}>
         <div style={styles.outerCardGlow} />
-        <div style={styles.outerCard}>
+        <div style={{
+          ...styles.outerCard,
+          ...(isMobile ? { padding: "28px 18px 32px", borderRadius: 24 } : {}),
+        }}>
           <div style={styles.cardSheen} />
 
           {/* Title */}
           <div style={styles.titleRow}>
             <div style={styles.titleAccent} />
-            <h1 style={styles.title}>
+            <h1 style={{
+              ...styles.title,
+              ...(isMobile ? { fontSize: 24, letterSpacing: -0.5 } : {}),
+            }}>
               K-pop <span style={styles.titleGradient}>Visual Studio</span>
             </h1>
           </div>
-          <p style={styles.subtitle}>
+          <p style={{
+            ...styles.subtitle,
+            ...(isMobile ? { fontSize: 12, margin: "0 0 24px 12px" } : {}),
+          }}>
             두 영상을 업로드하고 AI 기반 안무 유사도 분석을 시작해보세요.
           </p>
 
           {/* Upload zones */}
-          <div style={styles.uploadGrid}>
+          <div style={{
+            ...styles.uploadGrid,
+            ...(isMobile ? { gridTemplateColumns: "1fr", gap: 16 } : {}),
+          }}>
             <UploadZone
               label="원본 영상"
               file={videoA}
@@ -148,6 +165,7 @@ export default function HomePage({ onNavigate, onAnalyze }) {
                 setVideoAUrl(url);
                 setVideoA(null);
               }}
+              isMobile={isMobile}    // ⭐ 추가
             />
             <UploadZone
               label="비교 영상"
@@ -161,6 +179,7 @@ export default function HomePage({ onNavigate, onAnalyze }) {
                 setVideoBUrl(url);
                 setVideoB(null);
               }}
+              isMobile = {isMobile}
             />
           </div>
 
@@ -179,6 +198,7 @@ export default function HomePage({ onNavigate, onAnalyze }) {
               onClick={handleAnalyze}
               style={{
                 ...styles.analyzeBtn,
+                ...(isMobile ? { padding: "14px 40px", fontSize: 14, width: "100%" } : {}),
                 ...(isLoading ? styles.analyzeBtnDisabled : {}),
               }}
               disabled={isLoading}
@@ -189,16 +209,33 @@ export default function HomePage({ onNavigate, onAnalyze }) {
           </div>
 
           {/* Feature cards */}
-          <div style={styles.featureGrid}>
+          <div style={{
+            ...styles.featureGrid,
+            ...(isMobile ? { gridTemplateColumns: "1fr", gap: 12 } : {}),
+          }}>
             {[
               ["⚡", "실시간 분석", "AI 기반 고급 알고리즘으로 즉시 유사도 분석"],
               ["🎯", "구간별 탐지", "영상의 각 구간별로 정확한 유사도 점수 제공"],
               ["📊", "상세 보고서", "분석 결과를 시각화된 보고서로 확인"],
             ].map(([icon, title, desc]) => (
-              <div key={title} style={styles.featureCard}>
-                <div style={styles.featureIcon}>{icon}</div>
-                <div style={styles.featureTitle}>{title}</div>
-                <div style={styles.featureDesc}>{desc}</div>
+              <div key={title} style={{
+                ...styles.featureCard,
+                ...(isMobile ? {
+                  display: "flex", alignItems: "center", gap: 14,
+                  textAlign: "left", padding: "16px 18px",
+                } : {}),
+              }}>
+                <div style={{
+                  ...styles.featureIcon,
+                  ...(isMobile ? { marginBottom: 0, fontSize: 24, flexShrink: 0 } : {}),
+                }}>{icon}</div>
+                <div>
+                  <div style={styles.featureTitle}>{title}</div>
+                  <div style={{
+                    ...styles.featureDesc,
+                    ...(isMobile ? { fontSize: 12 } : {}),
+                  }}>{desc}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -209,7 +246,7 @@ export default function HomePage({ onNavigate, onAnalyze }) {
 }
 
 /* ---------- Upload Zone ---------- */
-const UploadZone = ({ label, file, url, onFile, onUrl }) => {
+const UploadZone = ({ label, file, url, onFile, onUrl, isMobile }) => {
   const ref = useRef();
   const [dragOver, setDragOver] = useState(false);
   const [showMenu, setShowMenu] = useState(false);

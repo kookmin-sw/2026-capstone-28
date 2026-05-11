@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useIsMobile } from "./hooks/useIsMobile";
 import bgImage from "./assets/profile_background.png";
 import { generatePDF } from "./utils/generatePDF";
 
@@ -28,7 +29,6 @@ const BODY_PART_LABELS = {
   torso:     "몸통",
 };
 
-// ===== 시간 포맷: { start: 10, end: 15 } → "00:10 - 00:15"
 const formatTime = (range) => {
   if (!range) return "";
   const fmt = (sec) => {
@@ -39,7 +39,6 @@ const formatTime = (range) => {
   return `${fmt(range.start)} - ${fmt(range.end)}`;
 };
 
-// ===== Mock 폴백 (개발 편의) =====
 const MOCK_RESULT = {
   video_url_a: null,
   video_url_b: null,
@@ -70,7 +69,8 @@ const MOCK_RESULT = {
 
 export default function ResultPage({ onNavigate, result }) {
   const [activeNav, setActiveNav] = useState("analyse");
-  const [openId, setOpenId]       = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const isMobile = useIsMobile();
 
   const [pdfLoading, setPdfLoading] = useState(false);
   const handlePDF = async () => {
@@ -82,7 +82,6 @@ export default function ResultPage({ onNavigate, result }) {
     }
   };
 
-  // result 없으면 mock 폴백
   const data = result || MOCK_RESULT;
 
   return (
@@ -104,7 +103,10 @@ export default function ResultPage({ onNavigate, result }) {
       {/* ===== Navigation ===== */}
       <nav style={styles.navWrap}>
         <div style={styles.navGlow} />
-        <div style={styles.nav}>
+        <div style={{
+          ...styles.nav,
+          ...(isMobile ? { gap: 2, padding: 4 } : {}),
+        }}>
           <div style={styles.cardSheen} />
           {NAV_ITEMS.map((item) => {
             const active = activeNav === item.key;
@@ -115,7 +117,11 @@ export default function ResultPage({ onNavigate, result }) {
                   setActiveNav(item.key);
                   if (onNavigate) onNavigate(item.key);
                 }}
-                style={{ ...styles.navBtn, ...(active ? styles.navBtnActive : {}) }}
+                style={{
+                  ...styles.navBtn,
+                  ...(isMobile ? { padding: "8px 14px", fontSize: 12 } : {}),
+                  ...(active ? styles.navBtnActive : {}),
+                }}
               >
                 {item.label}
               </button>
@@ -125,7 +131,14 @@ export default function ResultPage({ onNavigate, result }) {
       </nav>
 
       {/* ===== Main Content ===== */}
-      <main style={styles.main}>
+      <main style={{
+        ...styles.main,
+        ...(isMobile ? {
+          gridTemplateColumns: "1fr",
+          padding: "85px 4% 40px",
+          gap: 24,
+        } : {}),
+      }}>
 
         {/* ============ LEFT COLUMN ============ */}
         <div style={styles.leftColumn}>
@@ -133,17 +146,24 @@ export default function ResultPage({ onNavigate, result }) {
           {/* 전체 유사도 카드 */}
           <section style={styles.cardWrap}>
             <div style={styles.cardGlow} />
-            <div style={styles.scoreCard}>
+            <div style={{
+              ...styles.scoreCard,
+              ...(isMobile ? { padding: "28px 20px", borderRadius: 22 } : {}),
+            }}>
               <div style={styles.cardSheen} />
-              <h3 style={styles.scoreTitle}>전체 유사도 분석 결과</h3>
+              <h3 style={{
+                ...styles.scoreTitle,
+                ...(isMobile ? { fontSize: 18 } : {}),
+              }}>전체 유사도 분석 결과</h3>
 
-              {/* 원형 점수 — 중앙 정렬 */}
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
-                <CircleScore value={data.overall.score} />
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: isMobile ? 20 : 28 }}>
+                <CircleScore value={data.overall.score} isMobile={isMobile} />
               </div>
 
-              {/* 해석 텍스트 — 아래 풀너비 */}
-              <p style={styles.interpretText}>
+              <p style={{
+                ...styles.interpretText,
+                ...(isMobile ? { fontSize: 13, padding: "12px 14px" } : {}),
+              }}>
                 {data.overall.interpretation || "전체 유사도에 대한 해석이 표시됩니다."}
               </p>
 
@@ -160,11 +180,17 @@ export default function ResultPage({ onNavigate, result }) {
           <section>
             <div style={styles.sectionHeader}>
               <div style={styles.titleAccent} />
-              <h2 style={styles.sectionTitle}>분석 보고서</h2>
+              <h2 style={{
+                ...styles.sectionTitle,
+                ...(isMobile ? { fontSize: 22 } : {}),
+              }}>분석 보고서</h2>
             </div>
             <div style={styles.cardWrap}>
               <div style={styles.cardGlow} />
-              <div style={styles.reportCard}>
+              <div style={{
+                ...styles.reportCard,
+                ...(isMobile ? { padding: "24px 18px", borderRadius: 20 } : {}),
+              }}>
                 <div style={styles.cardSheen} />
 
                 <div style={styles.reportBlock}>
@@ -184,7 +210,6 @@ export default function ResultPage({ onNavigate, result }) {
                   </ul>
                 </div>
 
-                {/* 구간별 평균 body_parts 요약 */}
                 <div>
                   <div style={styles.reportLabel}>📊 신체 부위별 평균 유사도</div>
                   <BodyPartsAvg segments={data.segments} />
@@ -198,7 +223,10 @@ export default function ResultPage({ onNavigate, result }) {
         <aside style={styles.rightColumn}>
           <div style={styles.sectionHeader}>
             <div style={styles.titleAccent} />
-            <h2 style={styles.sectionTitle}>
+            <h2 style={{
+              ...styles.sectionTitle,
+              ...(isMobile ? { fontSize: 22 } : {}),
+            }}>
               유사한 구간{" "}
               <span style={styles.countText}>({data.segments.length}개)</span>
             </h2>
@@ -210,19 +238,28 @@ export default function ResultPage({ onNavigate, result }) {
               return (
                 <div
                   key={s.id}
-                  style={{ ...styles.segmentCard, ...(isOpen ? styles.segmentCardOpen : {}) }}
+                  style={{
+                    ...styles.segmentCard,
+                    ...(isMobile ? { padding: "14px 14px", borderRadius: 16 } : {}),
+                    ...(isOpen ? styles.segmentCardOpen : {}),
+                  }}
                 >
                   <div style={styles.cardSheen} />
 
-                  {/* ----- 헤더 (항상 보임) ----- */}
                   <div
                     onClick={() => setOpenId(isOpen ? null : s.id)}
-                    style={styles.segmentHeader}
+                    style={{
+                      ...styles.segmentHeader,
+                      ...(isMobile ? { gap: 12 } : {}),
+                    }}
                   >
-                    <ScoreBadge score={s.score} />
+                    <ScoreBadge score={s.score} isMobile={isMobile} />
                     <div style={styles.segmentInfo}>
                       <div style={styles.segmentTitle}>구간 {s.id}</div>
-                      <div style={styles.segmentTime}>
+                      <div style={{
+                        ...styles.segmentTime,
+                        ...(isMobile ? { fontSize: 11 } : {}),
+                      }}>
                         A&nbsp;{formatTime(s.video_a)}&nbsp;&nbsp;↔&nbsp;&nbsp;B&nbsp;{formatTime(s.video_b)}
                       </div>
                     </div>
@@ -232,13 +269,14 @@ export default function ResultPage({ onNavigate, result }) {
                     }}>›</div>
                   </div>
 
-                  {/* ----- 펼침 영역 ----- */}
                   {isOpen && (
                     <div style={styles.segmentExpand}>
                       <div style={styles.expandDivider} />
 
-                      {/* 영상 두 개 나란히 */}
-                      <div style={styles.videoGrid}>
+                      <div style={{
+                        ...styles.videoGrid,
+                        ...(isMobile ? { gridTemplateColumns: "1fr", gap: 12 } : {}),
+                      }}>
                         <SegmentVideoBox
                           label="A"
                           src={data.video_url_a}
@@ -253,10 +291,11 @@ export default function ResultPage({ onNavigate, result }) {
                         />
                       </div>
 
-                      {/* 설명 */}
-                      <p style={styles.expandDesc}>{s.description}</p>
+                      <p style={{
+                        ...styles.expandDesc,
+                        ...(isMobile ? { fontSize: 13, padding: "12px 14px" } : {}),
+                      }}>{s.description}</p>
 
-                      {/* body_parts 바 */}
                       {s.body_parts && Object.keys(s.body_parts).length > 0 && (
                         <div style={styles.bodyPartsWrap}>
                           {Object.entries(s.body_parts).map(([key, val]) => (
@@ -284,24 +323,25 @@ export default function ResultPage({ onNavigate, result }) {
    Sub Components
    ========================================================= */
 
-// ----- 원형 점수 -----
-const CircleScore = ({ value }) => {
+const CircleScore = ({ value, isMobile }) => {
+  const size = isMobile ? 120 : 150;
+  const inner = isMobile ? 94 : 118;
   const deg = value * 3.6;
   return (
     <div style={{
-      width: 150, height: 150, borderRadius: "50%",
+      width: size, height: size, borderRadius: "50%",
       background: `conic-gradient(${C.emerald} ${deg}deg, rgba(200,242,220,0.5) 0)`,
       display: "flex", alignItems: "center", justifyContent: "center",
       boxShadow: `0 8px 30px rgba(46,139,87,0.25)`, flexShrink: 0,
     }}>
       <div style={{
-        width: 118, height: 118, borderRadius: "50%",
+        width: inner, height: inner, borderRadius: "50%",
         background: "linear-gradient(155deg, rgba(255,255,255,0.95), rgba(255,255,255,0.75))",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         boxShadow: "inset 0 1px 0 rgba(255,255,255,1)",
       }}>
         <div style={{
-          fontSize: 30, fontWeight: 700, color: C.deep,
+          fontSize: isMobile ? 24 : 30, fontWeight: 700, color: C.deep,
           fontFamily: "'Chakra Petch',sans-serif", letterSpacing: -1,
         }}>
           {value}%
@@ -312,20 +352,21 @@ const CircleScore = ({ value }) => {
   );
 };
 
-// ----- 구간 점수 배지 -----
-const ScoreBadge = ({ score }) => {
+const ScoreBadge = ({ score, isMobile }) => {
+  const size = isMobile ? 46 : 56;
+  const inner = isMobile ? 36 : 44;
   const deg = score * 3.6;
   return (
     <div style={{
-      width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
+      width: size, height: size, borderRadius: "50%", flexShrink: 0,
       background: `conic-gradient(${C.emerald} ${deg}deg, rgba(200,242,220,0.5) 0)`,
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       <div style={{
-        width: 44, height: 44, borderRadius: "50%",
+        width: inner, height: inner, borderRadius: "50%",
         background: "linear-gradient(155deg, rgba(255,255,255,0.95), rgba(255,255,255,0.8))",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontWeight: 700, color: C.deep, fontSize: 13,
+        fontWeight: 700, color: C.deep, fontSize: isMobile ? 11 : 13,
         fontFamily: "'Chakra Petch',sans-serif",
       }}>
         {score}%
@@ -334,7 +375,6 @@ const ScoreBadge = ({ score }) => {
   );
 };
 
-// ----- JS currentTime 구간 루프 영상 -----
 const SegmentVideoBox = ({ label, src, start, end }) => {
   const ref = useRef(null);
 
@@ -383,7 +423,6 @@ const SegmentVideoBox = ({ label, src, start, end }) => {
   );
 };
 
-// ----- 신체 부위 바 (세그먼트 내부) -----
 const BodyPartBar = ({ label, value }) => {
   const pct = Math.round(value * 100);
   return (
@@ -404,7 +443,6 @@ const BodyPartBar = ({ label, value }) => {
   );
 };
 
-// ----- 전체 구간 평균 body_parts (왼쪽 보고서) -----
 const BodyPartsAvg = ({ segments }) => {
   if (!segments || segments.length === 0) return null;
 
@@ -443,8 +481,6 @@ const styles = {
     background: "radial-gradient(1200px 600px at 80% 30%, rgba(255,255,255,0.3), transparent 60%), radial-gradient(900px 500px at 20% 80%, rgba(46,139,87,0.06), transparent 60%)",
     pointerEvents: "none",
   },
-
-  /* Nav */
   navWrap: {
     position: "fixed", top: 24, left: 0, right: 0,
     display: "flex", justifyContent: "center", zIndex: 10,
@@ -480,8 +516,6 @@ const styles = {
     position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
     background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,1) 50%, transparent 100%)",
   },
-
-  /* Layout */
   main: {
     position: "relative", zIndex: 1, padding: "120px 5% 60px",
     display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 1fr)",
@@ -489,8 +523,6 @@ const styles = {
   },
   leftColumn: { display: "flex", flexDirection: "column", gap: 32, minWidth: 0 },
   rightColumn: { minWidth: 0 },
-
-  /* Cards */
   cardWrap: { position: "relative" },
   cardGlow: {
     position: "absolute", inset: -25,
@@ -512,7 +544,6 @@ const styles = {
     textAlign: "center", color: C.deep, fontFamily: "'Chakra Petch',sans-serif",
     fontSize: 20, fontWeight: 700, margin: "0 0 24px", letterSpacing: -0.3,
   },
-  // 해석 텍스트 — 풀너비, 가독성 개선
   interpretText: {
     fontSize: 15, color: C.text, lineHeight: 1.85, margin: "0 0 24px",
     fontWeight: 500, letterSpacing: 0.1,
@@ -528,8 +559,6 @@ const styles = {
     fontSize: 13, cursor: "pointer",
     boxShadow: "0 4px 12px rgba(11,59,46,0.06), inset 0 1px 0 rgba(255,255,255,0.9)",
   },
-
-  /* Section header */
   sectionHeader: { display: "flex", alignItems: "center", gap: 14, marginBottom: 22 },
   titleAccent: {
     width: 4, height: 32, borderRadius: 4,
@@ -541,8 +570,6 @@ const styles = {
     color: C.deep, margin: 0, letterSpacing: -0.5,
   },
   countText: { fontSize: 18, color: C.emerald, fontWeight: 700 },
-
-  /* Report */
   reportCard: {
     position: "relative", zIndex: 1, padding: "32px 36px", borderRadius: 24,
     background: "linear-gradient(155deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.4) 100%)",
@@ -560,8 +587,6 @@ const styles = {
   featureList: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 },
   featureItem: { fontSize: 14, color: C.text, display: "flex", gap: 10, lineHeight: 1.7, fontWeight: 500 },
   featureBullet: { color: C.emerald, fontWeight: 700, flexShrink: 0, fontSize: 16 },
-
-  /* Segment list */
   segmentList: { display: "flex", flexDirection: "column", gap: 14 },
   segmentCard: {
     position: "relative", padding: "18px 22px", borderRadius: 20,
@@ -589,8 +614,6 @@ const styles = {
     color: C.emerald, fontSize: 22, fontWeight: 700,
     flexShrink: 0, transition: "transform 0.3s",
   },
-
-  /* Expanded area */
   segmentExpand: { marginTop: 18, animation: "expandDown 0.35s ease-out" },
   expandDivider: {
     height: 1, marginBottom: 18,

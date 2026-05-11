@@ -15,105 +15,76 @@ const C = {
 };
 
 export default function Login({ onLogin }) {
-  const [mode, setMode] = useState("login"); // "login" | "signup"
-
-  // 로그인 필드
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(false);
+  
+  // ⭐ 로그인/회원가입 모드 전환
+  const [mode, setMode] = useState("login"); // "login" or "signup"
 
-  // 회원가입 추가 필드
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPw, setSignupPw] = useState("");
-  const [signupPwConfirm, setSignupPwConfirm] = useState("");
-  const [showSignupPw, setShowSignupPw] = useState(false);
-
-  // 로딩 상태
-  const [loading, setLoading] = useState(false);
-
-  // ===== 로그인 =====
+  // 이메일 로그인
   const handleLogin = async () => {
     if (!email || !pw) {
       alert("이메일과 비밀번호를 모두 입력해주세요.");
       return;
     }
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: pw,
-      });
-      if (error) {
-        alert(error.message);
-        return;
-      }
-      onLogin && onLogin();
-    } finally {
-      setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: pw,
+    });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    onLogin && onLogin();
+  };
+
+  // 이메일 회원가입
+const handleSignUp = async () => {
+  if (!email || !pw) {
+    alert("회원가입을 위해 이메일과 비밀번호를 모두 입력해주세요.");
+    return;
+  }
+  if (pw.length < 6) {
+    alert("비밀번호는 최소 6자 이상이어야 합니다.");
+    return;
+  }
+  const { data, error } = await supabase.auth.signUp({
+    email: email,
+    password: pw,
+  });
+  if (error) {
+    console.error("회원가입 에러:", error); // 자세한 에러 확인
+    alert(`회원가입 실패: ${error.message}`);
+    return;
+  }
+  alert("회원가입 성공! 이메일을 확인하여 계정을 활성화해주세요.");
+  setMode("login");
+};
+
+
+  // ⭐⭐⭐ 구글 로그인/회원가입
+  const handleGoogleAuth = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) {
+      alert(error.message);
+      return;
     }
   };
 
-  // ⭐ 기존 문경이 부분인데, 같이 수정됐어 ===== 회원가입 =====
-  const handleSignUp = async () => {
-    if (!signupName || !signupEmail || !signupPw || !signupPwConfirm) {
-      alert("모든 항목을 입력해주세요.");
-      return;
+  // 주 액션 버튼 핸들러
+  const handlePrimaryAction = () => {
+    if (mode === "login") {
+      handleLogin();
+    } else {
+      handleSignUp();
     }
-    if (signupPw !== signupPwConfirm) {
-      alert("비밀번호가 일치하지 않습니다.");
-      return;
-    }
-    if (signupPw.length < 6) {
-      alert("비밀번호는 6자 이상이어야 합니다.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPw,
-        options: {
-          data: { user_name: signupName },
-        },
-      });
-      if (error) {
-        alert(error.message);
-        return;
-      }
-
-      // profiles 테이블에 username 저장
-      if (data?.user) {
-        await supabase.from("profiles").upsert({
-          id: data.user.id,
-          user_name: signupName,
-        });
-      }
-
-      alert("회원가입 성공! 이메일을 확인하여 계정을 활성화해주세요.");
-      // 로그인 모드로 전환 + 이메일 자동 채우기
-      setEmail(signupEmail);
-      setPw("");
-      setMode("login");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  // ⭐ 여기까지 회원가입 부분
-
-  // ===== 모드 전환 =====
-  const switchToSignup = () => {
-    setSignupEmail(email); // 입력 중이던 이메일 이어받기
-    setMode("signup");
-  };
-
-  const switchToLogin = () => {
-    setEmail(signupEmail);
-    setMode("login");
   };
 
   return (
@@ -122,17 +93,8 @@ export default function Login({ onLogin }) {
         href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap"
         rel="stylesheet"
       />
-      <style>{`
-        @keyframes cardFadeIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
       <div style={styles.bgLayer} />
       <div style={styles.bgTint} />
-
-      {/* ===== 좌측 브랜드 ===== */}
       <div style={styles.left}>
         <div style={styles.badge}>
           <span style={styles.badgeDot} />
@@ -161,184 +123,120 @@ export default function Login({ onLogin }) {
           ))}
         </div>
       </div>
-
-      {/* ===== 우측 글래스 카드 ===== */}
       <div style={styles.cardWrap}>
         <div style={styles.cardGlow} />
-        <div style={styles.card} key={mode}>
+        <div style={styles.card}>
           <div style={styles.cardSheen} />
           <div style={styles.cardAccent} />
+          <div style={styles.cardHeader}>
+            <h2 style={styles.cardTitle}>
+              {mode === "login" ? "로그인" : "회원가입"}
+            </h2>
+            <p style={styles.cardSub}>
+              {mode === "login"
+                ? "계정에 로그인하여 분석을 시작하세요"
+                : "새 계정을 만들어 분석을 시작하세요"}
+            </p>
+          </div>
+          <Field label="이메일">
+            <InputBox
+              icon="✉"
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handlePrimaryAction()}
+            />
+          </Field>
+          <Field label="비밀번호">
+            <InputBox
+              icon="🔒"
+              type={showPw ? "text" : "password"}
+              placeholder={mode === "signup" ? "최소 6자 이상" : "••••••••"}
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handlePrimaryAction()}
+              right={
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  style={styles.eyeBtn}
+                >
+                  {showPw ? "🙈" : "👁"}
+                </button>
+              }
+            />
+          </Field>
 
-          {mode === "login" ? (
-            /* ========== 로그인 폼 ========== */
-            <div style={styles.cardInner}>
-              <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>로그인</h2>
-                <p style={styles.cardSub}>계정에 로그인하여 분석을 시작하세요</p>
-              </div>
-
-              <Field label="이메일">
-                <InputBox
-                  icon="✉"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+          {/* 로그인 모드일 때만 표시 */}
+          {mode === "login" && (
+            <div style={styles.optionsRow}>
+              <label style={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  style={styles.checkbox}
                 />
-              </Field>
-
-              <Field label="비밀번호">
-                <InputBox
-                  icon="🔒"
-                  type={showPw ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={pw}
-                  onChange={(e) => setPw(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                  right={
-                    <button type="button" onClick={() => setShowPw((v) => !v)} style={styles.eyeBtn}>
-                      {showPw ? "🙈" : "👁"}
-                    </button>
-                  }
-                />
-              </Field>
-
-              <div style={styles.optionsRow}>
-                <label style={styles.checkLabel}>
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    style={styles.checkbox}
-                  />
-                  로그인 상태 유지
-                </label>
-                <a style={styles.link}>비밀번호 찾기</a>
-              </div>
-
-              <button
-                style={{
-                  ...styles.primaryBtn,
-                  ...(loading ? { opacity: 0.7, pointerEvents: "none" } : {}),
-                }}
-                onClick={handleLogin}
-              >
-                {loading ? "로그인 중..." : "로그인"}
-                {!loading && <span style={{ marginLeft: 8 }}>→</span>}
-              </button>
-
-              <div style={styles.divider}>
-                <span style={styles.dividerLine} />
-                <span style={styles.dividerText}>또는</span>
-                <span style={styles.dividerLine} />
-              </div>
-
-              <button style={styles.googleBtn}>
-                <span style={{ fontSize: 16, marginRight: 8 }}>G</span>
-                Google로 계속하기
-              </button>
-
-              <p style={styles.footerText}>
-                계정이 없으신가요?{" "}
-                <a style={styles.linkBold} onClick={switchToSignup}>
-                  회원가입
-                </a>
-              </p>
-              <p style={styles.terms}>
-                계속 진행함으로써 당사의 <u>이용약관</u>과 <u>개인정보처리방침</u>에 동의합니다.
-              </p>
-            </div>
-          ) : (
-            /* ========== 회원가입 폼 ========== */
-            <div style={styles.cardInner}>
-              <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>회원가입</h2>
-                <p style={styles.cardSub}>새 계정을 만들어 분석을 시작하세요</p>
-              </div>
-
-              <Field label="이름">
-                <InputBox
-                  icon="👤"
-                  type="text"
-                  placeholder="홍길동"
-                  value={signupName}
-                  onChange={(e) => setSignupName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
-                />
-              </Field>
-
-              <Field label="이메일">
-                <InputBox
-                  icon="✉"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={signupEmail}
-                  onChange={(e) => setSignupEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
-                />
-              </Field>
-
-              <Field label="비밀번호">
-                <InputBox
-                  icon="🔒"
-                  type={showSignupPw ? "text" : "password"}
-                  placeholder="6자 이상"
-                  value={signupPw}
-                  onChange={(e) => setSignupPw(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
-                  right={
-                    <button type="button" onClick={() => setShowSignupPw((v) => !v)} style={styles.eyeBtn}>
-                      {showSignupPw ? "🙈" : "👁"}
-                    </button>
-                  }
-                />
-              </Field>
-
-              <Field label="비밀번호 확인">
-                <InputBox
-                  icon="🔒"
-                  type={showSignupPw ? "text" : "password"}
-                  placeholder="비밀번호 재입력"
-                  value={signupPwConfirm}
-                  onChange={(e) => setSignupPwConfirm(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
-                />
-                {signupPwConfirm && signupPw !== signupPwConfirm && (
-                  <div style={styles.errorHint}>비밀번호가 일치하지 않습니다</div>
-                )}
-              </Field>
-
-              <button
-                style={{
-                  ...styles.primaryBtn,
-                  ...(loading ? { opacity: 0.7, pointerEvents: "none" } : {}),
-                  marginTop: 8,
-                }}
-                onClick={handleSignUp}
-              >
-                {loading ? "가입 중..." : "회원가입"}
-                {!loading && <span style={{ marginLeft: 8 }}>→</span>}
-              </button>
-
-              <p style={styles.footerText}>
-                이미 계정이 있으신가요?{" "}
-                <a style={styles.linkBold} onClick={switchToLogin}>
-                  로그인
-                </a>
-              </p>
-              <p style={styles.terms}>
-                회원가입 시 당사의 <u>이용약관</u>과 <u>개인정보처리방침</u>에 동의합니다.
-              </p>
+                로그인 상태 유지
+              </label>
+              <a style={styles.link}>비밀번호 찾기</a>
             </div>
           )}
+
+          {/* 회원가입 모드일 때 추가 안내 */}
+          {mode === "signup" && (
+            <div style={styles.signupNotice}>
+              회원가입 후 이메일 인증이 필요합니다.
+            </div>
+          )}
+
+          <button style={styles.primaryBtn} onClick={handlePrimaryAction}>
+            {mode === "login" ? "로그인" : "회원가입"}
+            <span style={{ marginLeft: 8 }}>→</span>
+          </button>
+
+          <div style={styles.divider}>
+            <span style={styles.dividerLine} />
+            <span style={styles.dividerText}>또는</span>
+            <span style={styles.dividerLine} />
+          </div>
+
+          {/* ⭐⭐⭐ 구글 로그인 버튼에 onClick 연결 */}
+          <button style={styles.googleBtn} onClick={handleGoogleAuth}>
+            <span style={{ fontSize: 16, marginRight: 8 }}>G</span>
+            Google로 {mode === "login" ? "로그인" : "회원가입"}
+          </button>
+
+          {/* 모드 전환 링크 */}
+          <p style={styles.footerText}>
+            {mode === "login" ? (
+              <>
+                계정이 없으신가요?{" "}
+                <a style={styles.linkBold} onClick={() => setMode("signup")}>
+                  회원가입
+                </a>
+              </>
+            ) : (
+              <>
+                이미 계정이 있으신가요?{" "}
+                <a style={styles.linkBold} onClick={() => setMode("login")}>
+                  로그인
+                </a>
+              </>
+            )}
+          </p>
+
+          <p style={styles.terms}>
+            계속 진행함으로써 당사의 <u>이용약관</u>과 <u>개인정보처리방침</u>에
+            동의합니다.
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------- Sub Components ---------- */
 const Field = ({ label, children }) => (
   <div style={{ marginBottom: 16 }}>
     <div style={styles.fieldLabel}>{label}</div>
@@ -354,7 +252,6 @@ const InputBox = ({ icon, right, ...props }) => (
   </div>
 );
 
-/* ---------- Styles ---------- */
 const styles = {
   root: {
     position: "relative",
@@ -387,8 +284,6 @@ const styles = {
       "radial-gradient(1200px 600px at 80% 30%, rgba(255,255,255,0.35), transparent 60%), radial-gradient(900px 500px at 20% 80%, rgba(46,139,87,0.08), transparent 60%)",
     pointerEvents: "none",
   },
-
-  /* ----- Left brand area ----- */
   left: {
     position: "relative",
     zIndex: 1,
@@ -458,8 +353,6 @@ const styles = {
     letterSpacing: 0.8,
     marginTop: 2,
   },
-
-  /* ----- Right glass card ----- */
   cardWrap: {
     position: "relative",
     zIndex: 1,
@@ -491,7 +384,6 @@ const styles = {
       "inset 1px 0 0 rgba(255,255,255,0.5)",
     ].join(", "),
     overflow: "hidden",
-    animation: "cardFadeIn 0.35s ease-out",
   },
   cardSheen: {
     position: "absolute",
@@ -512,9 +404,6 @@ const styles = {
     background: `linear-gradient(180deg,${C.forest},${C.mint})`,
     boxShadow: `0 0 20px ${C.mint}`,
   },
-  cardInner: {
-    animation: "cardFadeIn 0.3s ease-out",
-  },
   cardHeader: { marginBottom: 28, paddingLeft: 6 },
   cardTitle: {
     fontFamily: "'Chakra Petch',sans-serif",
@@ -528,8 +417,6 @@ const styles = {
     fontSize: 13,
     margin: "8px 0 0",
   },
-
-  /* ----- Form fields ----- */
   fieldLabel: {
     fontSize: 12,
     fontWeight: 700,
@@ -580,15 +467,6 @@ const styles = {
     padding: 6,
     color: C.textSoft,
   },
-  errorHint: {
-    fontSize: 11,
-    color: "#D32F2F",
-    marginTop: 6,
-    paddingLeft: 4,
-    fontWeight: 600,
-  },
-
-  /* ----- Options & buttons ----- */
   optionsRow: {
     display: "flex",
     justifyContent: "space-between",
@@ -597,10 +475,25 @@ const styles = {
     fontSize: 13,
     color: C.textSoft,
   },
-  checkLabel: { display: "flex", alignItems: "center", gap: 8, cursor: "pointer" },
+  checkLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    cursor: "pointer",
+  },
   checkbox: { accentColor: C.emerald, width: 14, height: 14 },
   link: { color: C.emerald, cursor: "pointer", fontWeight: 600 },
   linkBold: { color: C.emerald, cursor: "pointer", fontWeight: 700 },
+  signupNotice: {
+    fontSize: 12,
+    color: C.textSoft,
+    marginTop: -8,
+    marginBottom: 24,
+    padding: "10px 14px",
+    background: "rgba(46,139,87,0.08)",
+    borderRadius: 8,
+    borderLeft: `3px solid ${C.emerald}`,
+  },
   primaryBtn: {
     width: "100%",
     padding: "16px",
@@ -614,7 +507,7 @@ const styles = {
     cursor: "pointer",
     fontFamily: "'Rajdhani',sans-serif",
     boxShadow: `0 12px 30px rgba(46,139,87,0.4), inset 0 1px 0 rgba(255,255,255,0.3)`,
-    transition: "all 0.2s",
+    transition: "transform 0.15s",
   },
   divider: {
     display: "flex",
@@ -646,6 +539,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    transition: "all 0.2s",
   },
   footerText: {
     textAlign: "center",

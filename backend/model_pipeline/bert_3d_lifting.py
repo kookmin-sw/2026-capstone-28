@@ -26,7 +26,7 @@ def _estimate_fps_from_frames(n_frames, max_duration=23):
     return 30
 
 
-def lifing_motion(keypoints : np.ndarray ) -> np.ndarray:
+def lifting_motion(keypoints: np.ndarray, fps=None) -> np.ndarray:
 
     """
     MotionBERT로 2D 키포인트 → 3D 좌표 추출.
@@ -56,7 +56,6 @@ def lifing_motion(keypoints : np.ndarray ) -> np.ndarray:
         out_3d = model(x)  # [1, F', 17, 3]
 
     out_3d = out_3d.squeeze(0).cpu().numpy()  # [F', 17, 3]
-
     return out_3d
 
 
@@ -75,7 +74,7 @@ def extract_3d_from_hrnet(extract_result: dict) -> np.ndarray:
     Returns:
         np.ndarray [F', 17, 3] — 3D 좌표
     """
-    return lifing_motion(
+    return lifting_motion(
         keypoints=extract_result["keypoints"],
         fps=extract_result["fps"],
     )

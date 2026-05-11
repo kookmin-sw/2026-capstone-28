@@ -68,8 +68,8 @@ def analyze(video_a_id: int, video_b_id: int):
     # ================================================================
     t1 = time.time()
     with ThreadPoolExecutor(max_workers=2) as executor:
-        future_emb_a = executor.submit(embed_motion, feat_a["keypoints"])
-        future_emb_b = executor.submit(embed_motion, feat_b["keypoints"])
+        future_emb_a = executor.submit(embed_motion, lifting_3d_a)
+        future_emb_b = executor.submit(embed_motion, lifting_3d_b)
 
         done, _ = wait([future_emb_a, future_emb_b], return_when=FIRST_EXCEPTION)
         for f in done:
@@ -86,9 +86,13 @@ def analyze(video_a_id: int, video_b_id: int):
     # ================================================================
     t2 = time.time()
     inference_output = infer_similarity(
-        emb_a, emb_b,
-        feat_a["keypoints"], feat_b["keypoints"]
-    )
+    emb_a,
+    emb_b,
+    feat_a["keypoints"],
+    feat_b["keypoints"],
+    fps_a=feat_a["fps"],
+    fps_b=feat_b["fps"],
+)
     logger.info(f"[Step3] GCN 추론 완료: {time.time() - t2:.2f}s")
 
     # ================================================================

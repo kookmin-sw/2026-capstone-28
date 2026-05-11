@@ -115,7 +115,7 @@ def load_hrnet(weight_path=None):
         )
 
     model = get_pose_net(cfg, is_train=False)
-    state_dict = torch.load(wp, map_location=device)
+    state_dict = torch.load(wp, map_location=device, weights_only=False)
     model.load_state_dict(state_dict, strict=True)
     model.to(device)
     model.eval()

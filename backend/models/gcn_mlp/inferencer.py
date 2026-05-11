@@ -47,7 +47,7 @@ def load_global_similarity_model() -> GlobalSimilarityModel:
 
     model = GlobalSimilarityModel(in_dim=512, gcn_hidden=256, gcn_out=128)
 
-    checkpoint = torch.load(GCN_MLP_WEIGHTS, map_location=DEVICE)
+    checkpoint = torch.load(GCN_MLP_WEIGHTS, map_location=DEVICE, weights_only=False)
 
     # checkpoint 형태 확인 — 보통 {"model_state_dict": ...} 또는 직접 state_dict
     if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:

@@ -28,7 +28,7 @@ def load_motion_bert():
     )
 
     # 2. 가중치 로드 (CPU)
-    checkpoint = torch.load(MOTION_BERT_WEIGHTS, map_location=DEVICE)
+    checkpoint = torch.load(MOTION_BERT_WEIGHTS, map_location=DEVICE, weights_only=False)
     # 공식 checkpoint는 보통 {"model_pos": state_dict} 형태
     state_dict = checkpoint.get("model_pos", checkpoint)
     # 'module.' 접두사 제거 (DataParallel로 저장된 경우)

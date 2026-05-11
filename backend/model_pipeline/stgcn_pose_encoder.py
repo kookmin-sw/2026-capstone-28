@@ -326,7 +326,7 @@ def load_pose_branch(checkpoint_path=None):
     model = STGCNPoseBranch().to(DEVICE)
 
     if checkpoint_path is not None:
-        ckpt = torch.load(checkpoint_path, map_location=DEVICE)
+        ckpt = torch.load(checkpoint_path, map_location=DEVICE, weights_only=False)
 
         if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
             state_dict = ckpt["model_state_dict"]

@@ -1,9 +1,11 @@
 """
 LLM 기반 안무 비교 레포트 생성.
 
-[입력] agent_data
-  - model_result: {motion_sim, pose_sim, body_parts}
-  - feature_result: {score, tags, details}
+[입력] agent_data — infer_similarity() 출력과 동일한 dict
+  - global_score: float (0~1)
+  - motion_segments: [{id, time_a, time_b, motion_sim, motion_body_parts,
+                       pose_sim, pose_detail, body_parts}, ...]
+  - feature_result: {segment_features: [{segment_id, tags, details}, ...]}
 
 [출력] ReportResult (Pydantic)
 """
@@ -25,8 +27,8 @@ logger = logging.getLogger(__name__)
 # ============================================================
 class SimilarSegment(BaseModel):
     id: int = Field(description="구간 번호 (1부터 시작하는 정수)")
-    time_a: str = Field(description="영상 A의 시간 구간 (예: '10~15초')")
-    time_b: str = Field(description="영상 B의 시간 구간 (예: '0~5초')")
+    time_a: str = Field(description="영상 A의 시간 구간 (예: '10~15s')")
+    time_b: str = Field(description="영상 B의 시간 구간 (예: '0~5s')")
     description: str = Field(description="해당 구간의 안무 유사성 분석 내용")
 
 
@@ -58,28 +60,39 @@ _SYSTEM_PROMPT = """
     - 단, 알고리즘 매칭에는 노이즈가 포함될 수 있으므로 모든 구간이 실제로 유사하다고 단정하지 않습니다.
 
     # Input Schema
-    입력은 두 개의 JSON 객체로 구성됩니다.
+    입력 JSON은 다음 구조를 가집니다.
 
-    ## model_result (ML 파이프라인 출력)
-    - motion_segments: 매칭된 5초 단위 후보 구간 리스트 (입력 순서가 알고리즘 신뢰도 순)
-    각 segment는 다음 필드를 가집니다:
-    - time_a: 영상 A의 시간 범위 (예: "00:12-00:17")
-    - time_b: 영상 B의 시간 범위
-    - motion_sim: 5초 동작 흐름 유사도 (0~1)
-    - motion_body_parts: 5초 단위 부위별 흐름 유사도
-        구조: {{left_arm, right_arm, left_leg, right_leg, torso}} (각 0~1)
-    - pose_sim: 1초 단위 포즈 유사도의 대표값 (0~1)
-    - pose_detail: 1초 단위 세부 비교 리스트
-        각 항목 구조: {{t, sim, body_parts}}
-    - body_parts: 1초 단위 부위별 유사도의 대표값
-        구조: {{left_arm, right_arm, left_leg, right_leg, torso}} (각 0~1)
+    ## global_score (float, 0~1)
+        ML 모델이 산출한 두 영상 전체의 유사도 점수.
 
-    ## feature_result (rule-based action label, optional)
-    - segment_features: 각 segment에 대응하는 동작 태그 리스트
-    각 항목 구조: {{segment_id, tags, details}}
-    - tags: 동작 분류 라벨 (예: "wave", "isolation", "spin", "footwork")
-    - details: 동작에 대한 자연어 설명
-    - 이 필드가 없거나 비어있으면 동작 명칭 없이 좌표 기반 서술만 수행합니다.
+    ## motion_segments (list)
+        매칭된 5초 단위 후보 구간 리스트 (motion_sim 높은 순).
+        각 segment 필드:
+        - id: 구간 번호 (1부터)
+        - time_a, time_b: 영상 A/B의 시간 범위 (예: "10~15s")
+        - motion_sim: 5초 동작 흐름 유사도 (0~1, 좌표+속도+가속도 기반)
+        - coarse_sim: refine 전 초기 유사도
+        - motion_body_parts: 5초 단위 부위별 흐름 유사도
+            구조: {{torso, left_arm, right_arm, left_leg, right_leg}} (각 0~1)
+        - pose_sim: 1초 단위 포즈 유사도의 대표값 (0~1)
+        - body_parts: 1초 단위 부위별 유사도의 대표값
+            구조: {{torso, left_arm, right_arm, left_leg, right_leg}} (각 0~1)
+        - pose_detail: 1초 단위 세부 비교 리스트
+            각 항목 구조:
+            - t: 시간 범위 (예: "10~11s ↔ 12~13s")
+            - sim: 해당 1초의 포즈 유사도
+            - body_parts: 부위별 유사도
+            - tag_support: 동작 특성 일치도 (0~1, 관절 각도/방향/속도 등 비교 기반)
+            - tags: 유사한 동작 특성 태그 (예: ["왼팔 팔꿈치 평균 각도 유사", "몸통 기울기 유사"])
+            - numeric_evidence: 수치 근거 (예: ["왼팔 방향 유사 → (up vs up)"])
+
+    ## feature_result (optional)
+        - segment_features: 각 segment에 대응하는 동작 태그 집계
+            각 항목: {{segment_id, tags, details}}
+            - tags: 5초 구간 내 1초별 태그를 집계한 대표 태그 리스트
+              (예: ["몸통 기울기 유사", "양팔 동기화 유사", "왼팔 방향 유사"])
+            - details: 수치 근거 문자열 리스트
+        - 이 필드가 없거나 비어있으면 태그 없이 좌표 기반 서술만 수행합니다.
 
     # Analysis Protocol
     다음 절차를 순서대로 수행하십시오.
@@ -96,9 +109,13 @@ _SYSTEM_PROMPT = """
     - 평균 대비 -0.1 이상 낮은 부위 = "차별화된 부위"
     - 모든 부위가 균일하게 높으면 "전신 동조", 특정 부위만 높으면 그 부위명을 명시
 
-    ## Step 3. 시간적 일관성 검토
+    ## Step 3. 시간적 일관성 + 동작 태그 검토
     - pose_detail 리스트 내에서 1초 단위 sim 값이 지속적으로 높게 유지되면 "연속적 유사"
     - 특정 1~2초만 튀는 경우 "순간적 일치" (우연 가능성)
+    - tag_support 값이 높고 tags에 구조적 태그(몸통 기울기, 양팔 동기화, 관절 각도 등)가 포함되면
+      해당 동작 특성을 본문에 자연스럽게 녹여 구체성을 높입니다.
+      예: "이 구간에서는 몸통의 기울기와 양팔의 동기화 패턴이 유사하게 나타났다."
+    - numeric_evidence의 구체적 수치 비교도 서술에 활용합니다.
 
     ## Step 4. 종합 판정
     판정 등급은 아래 5단계로 한정합니다. 다른 표현을 임의로 만들지 마십시오.
@@ -120,7 +137,7 @@ _SYSTEM_PROMPT = """
     2. 수치(0.87, 85% 등)를 본문에 직접 나열하지 않고, 위 Calibration 기준에 따라 정성 표현으로 변환합니다.
     3. "표절"이라는 단어는 사용하지 않습니다. 대신 "표절 가능성을 시사하는 정황", "차용으로 해석될 여지" 등 hedging 표현을 사용합니다.
     4. 안무 전문가의 실무 관점에서 서술하되, 단정적 법적 판단은 회피합니다.
-    5. feature_result가 제공되면 동작명(예: "웨이브", "아이솔레이션")을 본문에 자연스럽게 녹여 구체성을 높입니다.
+    5. feature_result의 tags가 제공되면 동작 특성(예: "몸통 기울기", "양팔 동기화", "관절 각도")을 본문에 자연스럽게 녹여 구체성을 높입니다.
     6. 동일한 표현을 반복하지 말고, 구간마다 서술의 결을 다르게 합니다.
 
     # Output Schema
@@ -128,15 +145,15 @@ _SYSTEM_PROMPT = """
 
     - summary: 두 영상 간 유사성에 대한 2~4문장의 종합 요약. Step 4의 판정 등급을 자연스럽게 포함합니다.
     - similar_segments: 각 구간 분석 객체의 리스트
-    - id: 1부터 시작하는 정수 (motion_segments 입력 순서대로 부여)
-    - time_a: 입력의 motion_segments[i].time_a 값을 그대로 복사
-    - time_b: 입력의 motion_segments[i].time_b 값을 그대로 복사
-    - description: 해당 구간의 유사성 분석 (한 문단, 3~5문장의 자연스러운 한국어 서술)
-        Step 1의 패턴 분류, Step 2의 부위별 특징, Step 3의 시간적 일관성을 통합 서술합니다.
+      - id: 1부터 시작하는 정수 (motion_segments 입력 순서대로 부여)
+      - time_a: 입력의 motion_segments[i].time_a 값을 그대로 복사
+      - time_b: 입력의 motion_segments[i].time_b 값을 그대로 복사
+      - description: 해당 구간의 유사성 분석 (한 문단, 3~5문장의 자연스러운 한국어 서술)
+          Step 1의 패턴 분류, Step 2의 부위별 특징, Step 3의 시간적 일관성과 동작 태그를 통합 서술합니다.
     - key_differences: 두 영상이 명확히 구별되는 지점에 대한 서술 (1~3문장).
-    D 패턴 구간이나 차별화된 부위를 근거로 작성합니다.
+      D 패턴 구간이나 차별화된 부위를 근거로 작성합니다.
     - overall_score_interpretation: 전체 분석 결과에 대한 해석과 후속 검토 권장 수준 (2~3문장).
-    Step 4의 판정 등급에 대한 근거를 함께 제시합니다.
+      Step 4의 판정 등급에 대한 근거를 함께 제시합니다.
 
     {format_instruction}
     """
@@ -175,26 +192,55 @@ def _validate_agent_data(data: dict):
 
 
 # ============================================================
+# 검출 구간 없을 때 기본 결과
+# ============================================================
+def _no_detection_result(global_score: float) -> dict:
+    """threshold를 넘는 유사 구간이 없을 때 LLM을 skip하고 반환하는 고정 결과."""
+    return {
+        "summary": (
+            "AI 분석 결과, 두 영상 사이에서 유의미한 유사 구간이 검출되지 않았습니다. "
+            "전체적인 안무 구조와 동작 패턴이 서로 독립적인 것으로 판단됩니다."
+        ),
+        "similar_segments": [],
+        "key_differences": [
+            "분석 알고리즘의 임계값을 초과하는 유사 구간이 발견되지 않아, "
+            "두 안무는 독립적으로 창작된 것으로 보입니다."
+        ],
+        "overall_score_interpretation": (
+            "독립 창작 가능성 높음으로 판정됩니다. "
+            "유사도 임계값을 충족하는 구간이 없으므로 추가적인 검토는 불필요한 것으로 사료됩니다."
+        ),
+    }
+
+
+# ============================================================
 # 메인 진입점
 # ============================================================
 def generate_similarity_report(agent_data: dict) -> dict:
     """
     Args:
-        agent_data: {
-            "model_result": {"motion_sim": ..., "pose_sim": ..., "body_parts": ...},
-            "feature_result": {"score": ..., "tags": [...], "details": ...},
-        }
+        agent_data: infer_similarity() 출력과 동일한 dict
+            {
+                "global_score": float,
+                "motion_segments": [...],
+                "feature_result": {...},
+            }
 
     Returns:
-        ReportResult 형태의 dict (summary, similar_segments, key_differences, overall_score_interpretation)
+        ReportResult 형태의 dict
+        (summary, similar_segments, key_differences, overall_score_interpretation)
     """
-    
     _validate_agent_data(agent_data)
-    
+
+    # 검출 구간이 없으면 LLM skip
+    if not agent_data.get("motion_segments"):
+        logger.info("⏭️ 유사 구간 미검출 — LLM skip")
+        return _no_detection_result(agent_data.get("global_score", 0.0))
+
     global _chain
     if _chain is None:
         _chain = _build_chain()
-    
+
     try:
         result = _chain.invoke({
             "data": json.dumps(agent_data, ensure_ascii=False)

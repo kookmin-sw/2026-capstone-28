@@ -1,6 +1,23 @@
 """
 analyze() 결과를 프론트엔드 친화적인 형식으로 정리.
 video_a_id, video_b_id로 Supabase에서 영상 URL을 조회해 함께 반환.
+
+[입력]
+  analyze_result: {
+    "model_output": infer_similarity() 결과,
+    "agent_report": generate_similarity_report() 결과,
+    "video_a_id": int,
+    "video_b_id": int,
+  }
+
+[출력]
+  프론트엔드 result_page.jsx가 소비하는 dict:
+  {
+    video_a_id, video_b_id, video_url_a, video_url_b,
+    overall: {score, interpretation},
+    summary, key_differences,
+    segments: [{id, score, video_a, video_b, description, body_parts}, ...]
+  }
 """
 import re
 import logging
@@ -49,20 +66,29 @@ def format_result(analyze_result: dict) -> dict:
         seg_id = seg.get("id")
         ms = next((m for m in motion_segments if m.get("id") == seg_id), None)
 
+        # score: motion_sim 기반 (0~1 → 백분율)
+        score = round(ms.get("motion_sim", 0) * 100, 1) if ms else 0
+
+        # body_parts: 1초 단위 평균 (pose 기반, 더 정밀)
+        # fallback으로 motion_body_parts 사용
+        body_parts = {}
+        if ms:
+            body_parts = ms.get("body_parts") or ms.get("motion_body_parts", {})
+
         segments.append({
             "id": seg_id,
-            "score": round(ms.get("motion_sim", 0) * 100, 1) if ms else 0,
+            "score": score,
             "video_a": _parse_time_range(seg.get("time_a", "")),
             "video_b": _parse_time_range(seg.get("time_b", "")),
             "description": seg.get("description", ""),
-            "body_parts": ms.get("motion_body_parts", {}) if ms else {},
+            "body_parts": body_parts,
         })
 
     return {
         "video_a_id": video_a_id,
         "video_b_id": video_b_id,
-        "video_url_a": video_url_a,   # ← 추가
-        "video_url_b": video_url_b,   # ← 추가
+        "video_url_a": video_url_a,
+        "video_url_b": video_url_b,
         "overall": overall,
         "summary": agent_report.get("summary", ""),
         "key_differences": agent_report.get("key_differences", []),

@@ -41,7 +41,7 @@ def infer_similarity(
         checkpoint_path=POSE_TAG_CKPT_PATH,
     )
 
-    pose_embedding_a = pose_result["pose_embedding_a"]
+    pose_embedding_a = pose_result["pose_embedding_a"]   #  ✅ 여기서 모델 임베딩 결과 나오고, 이걸로 5초 단위 문맥 파악하면 됨. 
     pose_embedding_b = pose_result["pose_embedding_b"]
 
     # 2. HRNet keypoints → feature → pair-level tag
@@ -54,7 +54,10 @@ def infer_similarity(
 
     tag_vector = tag_result["tag_vector"]
 
-    # 3. pose embedding + tag vector → final similarity
+
+    # ✅ 2-1. Motion Sim 결과물 안에서 HRnet (keypoints) 파라미터로 1초 단위 시퀀스 비교 진행하면 됨.
+
+    # 3. pose embedding + tag vector → final similarity  ✅ 여기는 최종 점수 Global Sim 만들어내는 것.
     final_result = run_pose_tag_similarity(
         pose_embedding_a,
         pose_embedding_b,
@@ -62,6 +65,19 @@ def infer_similarity(
         checkpoint_path=POSE_TAG_CKPT_PATH,
     )
 
+
+
+    # 여기가 수정되어야함. 
+    '''
+        similarity_score : final_result['similarity_score']
+        video_a : "video_a 제목"
+        video_b : "video_b 제목"
+        motion_segment : { time : { 시작, 끝} ,
+                           motion_sim : 5초 구간에서 motion sim,
+                           motion_body_part_sim : 5초 구간에서 신체부위별 sim,
+                           pose_sim : { 1초 단위 pose 유사도 내용들 }
+                        }
+    '''
     return {
         "similarity_score": final_result["similarity_score"],
         "pose_embedding_a": pose_embedding_a.tolist(),

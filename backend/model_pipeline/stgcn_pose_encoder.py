@@ -276,6 +276,7 @@ class STGCNPoseBranch(nn.Module):
 
         self.output_dim = len(BODY_PARTS) * gcn_out  # 640
 
+
     def forward(self, emb):
         """
         Args:
@@ -285,7 +286,7 @@ class STGCNPoseBranch(nn.Module):
             pose_embedding: [640]
         """
         x = self.encoder(emb)   # [F, 17, 128]
-        z = self.pool(x)        # [640]
+        z = self.pool(x)  # [640]
 
         return z
 

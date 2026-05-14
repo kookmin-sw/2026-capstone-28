@@ -739,7 +739,7 @@ const DetailModal = ({ item, isMobile, onClose }) => {
         {/* ===== 주요 차이점 ===== */}
         {item.keyDifferences && item.keyDifferences.length > 0 && (
           <div style={styles.modalSection}>
-            <div style={styles.modalSectionLabel}>⚡ 주요 차이점</div>
+            <div style={styles.modalSectionLabel}>⚡ 주요 공통점</div>
             <ul style={styles.modalDiffList}>
               {item.keyDifferences.map((diff, i) => (
                 <li key={i} style={styles.modalDiffItem}>

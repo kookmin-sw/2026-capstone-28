@@ -199,7 +199,7 @@ export default function ResultPage({ onNavigate, result }) {
                 </div>
 
                 <div style={styles.reportBlock}>
-                  <div style={styles.reportLabel}>✨ 주요 차이점</div>
+                  <div style={styles.reportLabel}>✨ 주요 공통점</div>
                   <ul style={styles.featureList}>
                     {data.key_differences.map((f, i) => (
                       <li key={i} style={styles.featureItem}>

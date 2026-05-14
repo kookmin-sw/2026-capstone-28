@@ -408,8 +408,8 @@ analyses (
 
 **Tenein** — K-pop Visual Studio
 
-국민대학교 소프트웨어융합대학 캡스톤디자인 2025
+2026 국민대학교 소프트웨어융합대학 캡스톤디자인
 
-© 2025 Tenein Team
+© 2026 Tenein Team
 
 </div>

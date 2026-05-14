@@ -92,7 +92,7 @@ export default function ProfilePage({ onNavigate }) {
                 timeB: _formatTimeRange(seg.video_b),
                 desc: seg.description || "",
               })),
-              keyDifferences: rd.key_differences || [],
+              keySimilarities: rd.key_similarities  || [],
             };
           });
 
@@ -737,11 +737,11 @@ const DetailModal = ({ item, isMobile, onClose }) => {
         )}
 
         {/* ===== 주요 차이점 ===== */}
-        {item.keyDifferences && item.keyDifferences.length > 0 && (
+        {item.keySimilarities  && item.keySimilarities.length > 0 && (
           <div style={styles.modalSection}>
             <div style={styles.modalSectionLabel}>⚡ 주요 공통점</div>
             <ul style={styles.modalDiffList}>
-              {item.keyDifferences.map((diff, i) => (
+              {item.keySimilarities.map((diff, i) => (
                 <li key={i} style={styles.modalDiffItem}>
                   <span style={styles.modalDiffBullet}>•</span>
                   {diff}

@@ -78,7 +78,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Client Layer                                  │
 │                                                                      │
-│   React + Vite (localhost:5173)                                      │
+│   React + Vite                                      │
 │   ┌──────────┬──────────┬──────────┬──────────┬──────────┐          │
 │   │  Login   │   Home   │  Result  │ Profile  │  About   │          │
 │   │  Page    │   Page   │  Page    │  Page    │  Page    │          │
@@ -97,7 +97,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 ├──────────────────────────────────────────────────────────────────────┤
 │                        Server Layer                                  │
 │                                                                      │
-│   FastAPI + Uvicorn (localhost:8000)                                  │
+│   FastAPI + Uvicorn                         │
 │   ┌──────────────────────────────────────────────────┐              │
 │   │              ML Pipeline (4-Stage)                │              │
 │   │                                                    │              │
@@ -119,7 +119,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 │                                                                      │
 │   ┌──────────────────────┐        ┌──────────────────┐              │
 │   │      Supabase        │        │    OpenAI API     │              │
-│   │  ┌──────┬─────┬────┐│        │  GPT-4o-mini      │              │
+│   │  ┌──────┬─────┬────┐│        │  GPT-5.1      │              │
 │   │  │ Auth │ DB  │Stor││        │  (LangChain 경유)  │              │
 │   │  └──────┴─────┴────┘│        └──────────────────┘              │
 │   └──────────────────────┘                                           │
@@ -140,7 +140,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
   → MotionBERT (임베딩 생성, [F, 17, 512])
   → LightweightGCN + BodyPartMotionPooling (유사도 계산)
   → 정적 구간 필터링 + Top 25% 선별
-  → LangChain + GPT-4o-mini (자연어 보고서)
+  → LangChain + GPT-5.1 (자연어 보고서)
   → JSON 응답
 ```
 
@@ -181,7 +181,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 <details>
 <summary><b>LLM 보고서 생성</b></summary>
 
-- LangChain + ChatOpenAI (GPT-4o-mini)
+- LangChain + ChatOpenAI (GPT-5.1)
 - Pydantic 스키마로 구조화된 JSON 출력
 - 출력: summary, interpretation, key_differences, segments[].description
 - SimilarSegment(id, time_a, time_b, description) 구조

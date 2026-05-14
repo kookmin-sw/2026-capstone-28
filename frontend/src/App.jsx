@@ -8,7 +8,7 @@ import ResultPage from "./result_page";
 import LoadingPage from "./loading_page";
 import { useIsMobile } from "./hooks/useIsMobile";
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = "https://kpopstand.com"
 
 export default function App() {
   const [page, setPage] = useState("about");

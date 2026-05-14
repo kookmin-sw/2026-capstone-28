@@ -31,7 +31,7 @@
 - [시스템 아키텍처](#-시스템-아키텍처)
 - [AI 모델 파이프라인](#-ai-모델-파이프라인)
 - [웹 서비스](#-웹-서비스)
-- [설치 및 실행](#-설치-및-실행)
+- [AWS 배포 아키텍처](#-aws-배포-아키텍처)
 - [사용 라이브러리](#-사용-라이브러리)
 - [참고 문헌](#-참고-문헌)
 
@@ -49,7 +49,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 | 🎯 **전체 유사도 분석** | 두 안무 영상의 전체 유사도 점수 산출 |
 | 🔍 **구간별 탐지** | 시간 구간별 유사 안무 구간 자동 탐지 |
 | 🦴 **부위별 분석** | 왼팔, 오른팔, 왼다리, 오른다리, 몸통 부위별 유사도 |
-| 📊 **AI 보고서** | GPT-4o-mini 기반 자연어 분석 보고서 자동 생성 |
+| 📊 **AI 보고서** | GPT-5.1 기반 자연어 분석 보고서 자동 생성 |
 | 📄 **PDF 내보내기** | 분석 결과를 PDF 보고서로 다운로드 |
 | 👤 **분석 히스토리** | 과거 분석 기록 조회 및 상세 보기 |
 
@@ -63,10 +63,10 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 
 | 이름 | 역할 |
 |:----:|------|
-| 김수만 | AI 모델 설계, 3D Pose Lifting, GCN+Skip 모델 개발 |
-| 김정인 | Tag Feature 설계, 멀티모달 모델 개발, 추론 파이프라인 |
-| 배문경 | 프론트엔드 개발, UI/UX 디자인, PDF 보고서 시스템 |
-| 백경지 | 백엔드 개발, API 설계, DB 설계, 인프라 구축 |
+| 김수만 | AI 모델 설계, LLM 연동, BE , UI/UX 개발|
+| 김정인 | AI 모델 설계, pose+tag multi modal model 개발 |
+| 배문경 | AI 모델 설계, DB 설계, FE |
+| 백경지 | 백엔드 개발, API 설계,인프라 구축 |
 
 **지도교수:** 윤수연 (국민대학교 소프트웨어융합대학)
 
@@ -78,7 +78,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Client Layer                                  │
 │                                                                      │
-│   React + Vite (localhost:5173)                                      │
+│   React + Vite                                      │
 │   ┌──────────┬──────────┬──────────┬──────────┬──────────┐          │
 │   │  Login   │   Home   │  Result  │ Profile  │  About   │          │
 │   │  Page    │   Page   │  Page    │  Page    │  Page    │          │
@@ -97,7 +97,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 ├──────────────────────────────────────────────────────────────────────┤
 │                        Server Layer                                  │
 │                                                                      │
-│   FastAPI + Uvicorn (localhost:8000)                                  │
+│   FastAPI + Uvicorn                         │
 │   ┌──────────────────────────────────────────────────┐              │
 │   │              ML Pipeline (4-Stage)                │              │
 │   │                                                    │              │
@@ -119,7 +119,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 │                                                                      │
 │   ┌──────────────────────┐        ┌──────────────────┐              │
 │   │      Supabase        │        │    OpenAI API     │              │
-│   │  ┌──────┬─────┬────┐│        │  GPT-4o-mini      │              │
+│   │  ┌──────┬─────┬────┐│        │  GPT-5.1      │              │
 │   │  │ Auth │ DB  │Stor││        │  (LangChain 경유)  │              │
 │   │  └──────┴─────┴────┘│        └──────────────────┘              │
 │   └──────────────────────┘                                           │
@@ -140,7 +140,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
   → MotionBERT (임베딩 생성, [F, 17, 512])
   → LightweightGCN + BodyPartMotionPooling (유사도 계산)
   → 정적 구간 필터링 + Top 25% 선별
-  → LangChain + GPT-4o-mini (자연어 보고서)
+  → LangChain + GPT-5.1 (자연어 보고서)
   → JSON 응답
 ```
 
@@ -181,7 +181,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 <details>
 <summary><b>LLM 보고서 생성</b></summary>
 
-- LangChain + ChatOpenAI (GPT-4o-mini)
+- LangChain + ChatOpenAI (GPT-5.1)
 - Pydantic 스키마로 구조화된 JSON 출력
 - 출력: summary, interpretation, key_differences, segments[].description
 - SimilarSegment(id, time_a, time_b, description) 구조
@@ -290,66 +290,76 @@ analyses (
 
 ---
 
-## 🚀 설치 및 실행
-
-### 사전 요구사항
-
-- **Node.js** 18+ / npm 9+
-- **Python** 3.13+
-- **Git**
-
-### 1. 저장소 클론
-
-```bash
-git clone https://github.com/nomad0884/26_Capstone.git
-cd 26_Capstone/Web
+## ☁️ AWS 배포 아키텍처
+ 
 ```
-
-### 2. 백엔드 설정
-
-```bash
-cd backend
-
-# 가상환경 생성 및 활성화
-python -m venv .venv
-
-# Windows
-.\.venv\Scripts\Activate.ps1
-# macOS/Linux
-source .venv/bin/activate
-
-# 의존성 설치
-pip install -r requirements.txt
+┌──────────────────────────────────────────────────────────────────────┐
+│                           AWS Cloud                                  │
+│                                                                      │
+│  ┌─────────────────────┐         ┌─────────────────────┐            │
+│  │  EC2 — Frontend     │         │  EC2 — Backend       │            │
+│  │  ┌───────┐ ┌──────┐ │         │  ┌────────┐ ┌──────┐ │            │
+│  │  │ React │ │ Vite │ │  POST   │  │FastAPI │ │Docker│ │            │
+│  │  └───────┘ └──────┘ │ ──────→ │  │Python  │ └──────┘ │            │
+│  │       Docker         │/analyze │  └────────┘          │            │
+│  └──────────┬──────────┘         └──────────┬───────────┘            │
+│             │                               │                        │
+└─────────────┼───────────────────────────────┼────────────────────────┘
+              │ HTTPS                         │
+              │                               ├──→ Supabase DB
+              │                               ├──→ Supabase Storage
+              │                               └──→ OpenAI API (Report)
+              │
+    ┌─────────┼──────────────────────────────────────┐
+    │         ▼                                      │
+    │  ┌─────────────┐                               │
+    │  │Supabase Auth│  Login / Create Account       │
+    │  └─────────────┘                               │
+    │                      Supabase                  │
+    └────────────────────────────────────────────────┘
+ 
+┌──────────────────────────────────────────────────────────────────────┐
+│                         CI/CD Pipeline                               │
+│                                                                      │
+│  Developer → GitHub → GitHub Actions → Docker Build → ECR Push      │
+│                                            │                         │
+│                                            └──→ EC2 자동 배포        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
-
-**환경변수 설정** — `backend/.env` 파일 생성:
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-service-role-key
-OPENAI_API_KEY=sk-proj-...
+ 
+### 인프라 구성
+ 
+| 구성 요소 | 서비스 | 역할 |
+|:---:|------|------|
+| 🖥 | **EC2 (Frontend)** | React + Vite 정적 파일 서빙, Docker 컨테이너 |
+| 🧠 | **EC2 (Backend)** | FastAPI + PyTorch ML 파이프라인, Docker 컨테이너 |
+| 📦 | **ECR** | Frontend Image, Backend Image 저장소 |
+| 🔐 | **Supabase Auth** | 사용자 인증 (이메일/비밀번호, Google OAuth) |
+| 🗄 | **Supabase DB** | PostgreSQL — 분석 결과, 사용자 프로필 저장 |
+| 📁 | **Supabase Storage** | 업로드 영상 파일 관리 (videos 버킷) |
+| 🤖 | **OpenAI API** | GPT-4o-mini 기반 분석 보고서 생성 |
+ 
+### 배포 흐름
+ 
 ```
-
-**모델 가중치 배치:**
-
-| 파일 | 경로 | 용도 |
-|------|------|------|
-| `yolov8n.pt` | `models/yolo/weights/` | 인물 검출 |
-| `pose_landmarker_full.task` | `models/mediapipe/` | 포즈 추출 |
-| `mega_latest_epoch.bin` | `models/motion_bert/weights/` | MotionBERT 임베딩 |
-| `best_global_model.pth` | `models/gcn_mlp/weights/` | GCN 유사도 모델 |
-
-**서버 실행:**
-
-```bash
-uvicorn main:app --reload
-# http://localhost:8000
-# Swagger UI: http://localhost:8000/docs
+1. 개발자가 main 브랜치에 push
+2. GitHub Actions 트리거
+3. Docker 이미지 빌드 (Frontend / Backend)
+4. ECR에 이미지 Push
+5. EC2에서 최신 이미지 Pull + 컨테이너 재시작
 ```
+ 
+### 통신 구조
+ 
+| 구간 | 프로토콜 | 포트 |
+|------|:------:|:----:|
+| User ↔ Frontend | HTTPS | 443 |
+| Frontend ↔ Backend | HTTP | 8000 |
+| Frontend ↔ Supabase Auth | HTTPS | 443 |
+| Backend ↔ Supabase DB/Storage | HTTPS | 443 |
+| Backend ↔ OpenAI API | HTTPS | 443 |
 
-*수정 중
 ---
-
 ## 📚 사용 라이브러리
 
 ### AI / 백엔드
@@ -359,7 +369,7 @@ uvicorn main:app --reload
 | PyTorch 2.x | 딥러닝 프레임워크 | BSD-3 |
 | FastAPI | REST API 서버 | MIT |
 | Ultralytics YOLOv8 | 인물 검출 | AGPL-3.0 |
-| MediaPipe 0.10.33 | 2D 포즈 추출 | Apache-2.0 |
+| HRNet-W48  | 2D 포즈 추출 | MIT |
 | MotionBERT | 모션 임베딩 | MIT |
 | LangChain | LLM 오케스트레이션 | MIT |
 | OpenCV 4.x | 영상 처리 | Apache-2.0 |
@@ -398,8 +408,8 @@ uvicorn main:app --reload
 
 **Tenein** — K-pop Visual Studio
 
-국민대학교 소프트웨어융합대학 캡스톤디자인 2025
+2026 국민대학교 소프트웨어융합대학 캡스톤디자인
 
-© 2025 Tenein Team
+© 2026 Tenein Team
 
 </div>

@@ -369,7 +369,7 @@ analyses (
 | PyTorch 2.x | 딥러닝 프레임워크 | BSD-3 |
 | FastAPI | REST API 서버 | MIT |
 | Ultralytics YOLOv8 | 인물 검출 | AGPL-3.0 |
-| MediaPipe 0.10.33 | 2D 포즈 추출 | Apache-2.0 |
+| HRNet-W48  | 2D 포즈 추출 | MIT |
 | MotionBERT | 모션 임베딩 | MIT |
 | LangChain | LLM 오케스트레이션 | MIT |
 | OpenCV 4.x | 영상 처리 | Apache-2.0 |

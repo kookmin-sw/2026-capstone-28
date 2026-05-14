@@ -60,7 +60,7 @@ export default function HomePage({ onNavigate, onAnalyze }) {
       if (videoAUrl) form.append("video_a_url", videoAUrl);
       if (videoBUrl) form.append("video_b_url", videoBUrl);
 
-      const res = await fetch("https://kpopstand.com", {
+      const res = await fetch("https://kpopstand.com/api/videos/upload", {
         method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: form,

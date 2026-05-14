@@ -290,66 +290,76 @@ analyses (
 
 ---
 
-## 🚀 설치 및 실행
-
-### 사전 요구사항
-
-- **Node.js** 18+ / npm 9+
-- **Python** 3.13+
-- **Git**
-
-### 1. 저장소 클론
-
-```bash
-git clone https://github.com/nomad0884/26_Capstone.git
-cd 26_Capstone/Web
+## ☁️ AWS 배포 아키텍처
+ 
 ```
-
-### 2. 백엔드 설정
-
-```bash
-cd backend
-
-# 가상환경 생성 및 활성화
-python -m venv .venv
-
-# Windows
-.\.venv\Scripts\Activate.ps1
-# macOS/Linux
-source .venv/bin/activate
-
-# 의존성 설치
-pip install -r requirements.txt
+┌──────────────────────────────────────────────────────────────────────┐
+│                           AWS Cloud                                  │
+│                                                                      │
+│  ┌─────────────────────┐         ┌─────────────────────┐            │
+│  │  EC2 — Frontend     │         │  EC2 — Backend       │            │
+│  │  ┌───────┐ ┌──────┐ │         │  ┌────────┐ ┌──────┐ │            │
+│  │  │ React │ │ Vite │ │  POST   │  │FastAPI │ │Docker│ │            │
+│  │  └───────┘ └──────┘ │ ──────→ │  │Python  │ └──────┘ │            │
+│  │       Docker         │/analyze │  └────────┘          │            │
+│  └──────────┬──────────┘         └──────────┬───────────┘            │
+│             │                               │                        │
+└─────────────┼───────────────────────────────┼────────────────────────┘
+              │ HTTPS                         │
+              │                               ├──→ Supabase DB
+              │                               ├──→ Supabase Storage
+              │                               └──→ OpenAI API (Report)
+              │
+    ┌─────────┼──────────────────────────────────────┐
+    │         ▼                                      │
+    │  ┌─────────────┐                               │
+    │  │Supabase Auth│  Login / Create Account       │
+    │  └─────────────┘                               │
+    │                      Supabase                  │
+    └────────────────────────────────────────────────┘
+ 
+┌──────────────────────────────────────────────────────────────────────┐
+│                         CI/CD Pipeline                               │
+│                                                                      │
+│  Developer → GitHub → GitHub Actions → Docker Build → ECR Push      │
+│                                            │                         │
+│                                            └──→ EC2 자동 배포        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
-
-**환경변수 설정** — `backend/.env` 파일 생성:
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-service-role-key
-OPENAI_API_KEY=sk-proj-...
+ 
+### 인프라 구성
+ 
+| 구성 요소 | 서비스 | 역할 |
+|:---:|------|------|
+| 🖥 | **EC2 (Frontend)** | React + Vite 정적 파일 서빙, Docker 컨테이너 |
+| 🧠 | **EC2 (Backend)** | FastAPI + PyTorch ML 파이프라인, Docker 컨테이너 |
+| 📦 | **ECR** | Frontend Image, Backend Image 저장소 |
+| 🔐 | **Supabase Auth** | 사용자 인증 (이메일/비밀번호, Google OAuth) |
+| 🗄 | **Supabase DB** | PostgreSQL — 분석 결과, 사용자 프로필 저장 |
+| 📁 | **Supabase Storage** | 업로드 영상 파일 관리 (videos 버킷) |
+| 🤖 | **OpenAI API** | GPT-4o-mini 기반 분석 보고서 생성 |
+ 
+### 배포 흐름
+ 
 ```
-
-**모델 가중치 배치:**
-
-| 파일 | 경로 | 용도 |
-|------|------|------|
-| `yolov8n.pt` | `models/yolo/weights/` | 인물 검출 |
-| `pose_landmarker_full.task` | `models/mediapipe/` | 포즈 추출 |
-| `mega_latest_epoch.bin` | `models/motion_bert/weights/` | MotionBERT 임베딩 |
-| `best_global_model.pth` | `models/gcn_mlp/weights/` | GCN 유사도 모델 |
-
-**서버 실행:**
-
-```bash
-uvicorn main:app --reload
-# http://localhost:8000
-# Swagger UI: http://localhost:8000/docs
+1. 개발자가 main 브랜치에 push
+2. GitHub Actions 트리거
+3. Docker 이미지 빌드 (Frontend / Backend)
+4. ECR에 이미지 Push
+5. EC2에서 최신 이미지 Pull + 컨테이너 재시작
 ```
+ 
+### 통신 구조
+ 
+| 구간 | 프로토콜 | 포트 |
+|------|:------:|:----:|
+| User ↔ Frontend | HTTPS | 443 |
+| Frontend ↔ Backend | HTTP | 8000 |
+| Frontend ↔ Supabase Auth | HTTPS | 443 |
+| Backend ↔ Supabase DB/Storage | HTTPS | 443 |
+| Backend ↔ OpenAI API | HTTPS | 443 |
 
-*수정 중
 ---
-
 ## 📚 사용 라이브러리
 
 ### AI / 백엔드

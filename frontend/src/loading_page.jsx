@@ -83,7 +83,7 @@ export default function LoadingPage() {
         </h2>
 
         <p style={styles.subtitle}>
-          분석에는 약 2분 정도 소요됩니다
+          분석에는 약 5분 정도 소요됩니다
         </p>
 
         <div style={styles.elapsed}>

@@ -227,9 +227,9 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 
 | 항목 | 내용 |
 |------|------|
-| **프레임워크** | FastAPI + Uvicorn |
+| **프레임워크** | FastAPI + AWS |
 | **ML 런타임** | PyTorch (CPU), YOLO, MediaPipe, MotionBERT, GCN |
-| **LLM** | LangChain + GPT-4o-mini |
+| **LLM** | LangChain + GPT-5.1 |
 | **DB/Storage** | Supabase (PostgreSQL + Storage) |
 
 #### API 엔드포인트

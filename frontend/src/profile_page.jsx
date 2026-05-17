@@ -445,7 +445,7 @@ const HistoryCard = ({ item, isMobile, onDetail, onDelete }) => (
 
         <div style={styles.tagRow}>
           {!item.isPending && (
-            <span style={styles.simBadge}>유사 {item.similarity}%</span>
+            <span style={styles.simBadge}>유사 구간 {item.segments?.length || 0}개 검출</span>
           )}
           <span style={styles.featureBadge}>{item.tag}</span>
         </div>
@@ -464,9 +464,9 @@ const HistoryCard = ({ item, isMobile, onDetail, onDelete }) => (
 
     {!item.isPending && (
       <>
-        <div style={styles.progressTrack}>
+        {/* <div style={styles.progressTrack}>
           <div style={{ ...styles.progressFill, width: `${item.similarity}%` }} />
-        </div>
+        </div> */}
         <div style={{
           ...styles.cardFooter,
           ...(isMobile ? { flexDirection: "column", gap: 8, alignItems: "stretch" } : {}),
@@ -680,24 +680,16 @@ const DetailModal = ({ item, isMobile, onClose }) => {
           </div>
 
           <div style={{
-            width: isMobile ? 80 : 100, height: isMobile ? 80 : 100, borderRadius: "50%",
-            background: `conic-gradient(${C.emerald} ${deg}deg, rgba(200,242,220,0.5) 0)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: `0 6px 20px rgba(46,139,87,0.25)`, flexShrink: 0,
+            padding: "12px 24px",
+            borderRadius: 999,
+            background: `linear-gradient(135deg,${C.forest},${C.emerald})`,
+            color: "#fff",
+            fontSize: 16,
+            fontWeight: 700,
+            fontFamily: "'Chakra Petch',sans-serif",
+            boxShadow: "0 4px 12px rgba(46,139,87,0.3)",
           }}>
-            <div style={{
-              width: isMobile ? 62 : 78, height: isMobile ? 62 : 78, borderRadius: "50%",
-              background: "linear-gradient(155deg, rgba(255,255,255,0.95), rgba(255,255,255,0.75))",
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,1)",
-            }}>
-              <div style={{
-                fontSize: isMobile ? 18 : 22, fontWeight: 700, color: C.deep,
-                fontFamily: "'Chakra Petch',sans-serif", letterSpacing: -1,
-              }}>{item.similarity ?? 0}%</div>
-              <div style={{ fontSize: 10, color: C.emerald }}>유사도</div>
-            </div>
+            유사 구간 {item.segments?.length || 0}개 검출
           </div>
         </div>
 

@@ -151,8 +151,7 @@ K-pop 안무 영상 간 유사도를 자동으로 분석하는 풀스택 AI 웹 
 <summary><b>포즈 추출</b></summary>
 
 - YOLOv8으로 프레임별 인물 바운딩 박스 검출
-- MediaPipe PoseLandmarker (tasks API, 0.10.33)로 33관절 좌표 추출
-- COCO → H36M 17관절 매핑
+- HRnet으로 COCO 17 관절 추출
 - 10fps 프레임 샘플링
 
 </details>
